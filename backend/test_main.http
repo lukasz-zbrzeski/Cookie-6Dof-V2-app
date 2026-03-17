@@ -1,0 +1,93 @@
+# Test your FastAPI endpoints
+
+GET http://127.0.0.1:8000/robot/state
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/robot/connect
+Content-Type: application/json
+
+{
+  "com_port": "COM3",
+  "baud_rate": 115200
+}
+
+###
+
+POST http://127.0.0.1:8000/robot/stop
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/robot/reset
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/robot/mode
+Content-Type: application/json
+
+{
+  "mode": "manual"
+}
+
+###
+
+GET http://127.0.0.1:8000/robot/joints
+Accept: application/json
+
+###
+
+PATCH http://127.0.0.1:8000/robot/joints/0/increment
+Accept: application/json
+
+###
+
+PATCH http://127.0.0.1:8000/robot/joints/0/decrement
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/robot/cartesian
+Accept: application/json
+
+###
+
+PATCH http://127.0.0.1:8000/robot/cartesian/1/increment
+Accept: application/json
+
+###
+
+PATCH http://127.0.0.1:8000/robot/cartesian/1/decrement
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/robot/record
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/robot/play
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/robot/pause
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/robot/resume
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/robot/prev-position
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/robot/next-position
+Accept: application/json

@@ -258,4 +258,4 @@ async def prev_position():
 @app.post("/robot/next-position")
 async def next_position():
     send_uart_command("next_position")
-    return {"message": "Przejście do następnej pozycji."}
+    return {"message": "Przejście do następnej pozycji."} 

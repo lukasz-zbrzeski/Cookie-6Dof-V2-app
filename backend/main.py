@@ -5,8 +5,9 @@ import psycopg
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+import uart as uart
 
-
+# 8000 - default FastAPI port
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://robotuser:robotpass@db:5432/robotdb",
@@ -124,9 +125,18 @@ async def get_robot_state():
     return robot_state
 
 
+@app.get("/robot/scan_com_ports")
+async def scan_com_ports():
+    # Placeholder for COM port scanning logic
+
+    return {"com_ports": uart.list_serial_ports()} 
+
+
 @app.post("/robot/connect")
 async def connect_robot(data: ConnectRequest):
-    robot_state["connected"] = True
+    
+    
+    robot_state["connected"] = False
     robot_state["com_port"] = data.com_port
     robot_state["baud_rate"] = data.baud_rate
 

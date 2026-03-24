@@ -3,6 +3,9 @@ import serial
 import serial.tools.list_ports
 import time
 
+# Global variable to hold the serial connection
+ser = None 
+
 
 def list_serial_ports():
     com_ports = list(serial.tools.list_ports.comports())
@@ -14,11 +17,14 @@ def list_serial_ports():
 
 def uart_connect(com_port: str, baud_rate: int):
     # 1. Otwieramy port (Zwiększyłem timeout do 0.1s dla pewności)
+    global ser
+
     try:
         ser = serial.Serial(com_port, baud_rate, timeout=0.1)
         print(f"Otwarto port: {ser.name}")
     except Exception as e:
         print(f"Blad otwarcia portu: {e}")
+        return False
         exit()
 
     # UWAGA: Otwarcie portu często resetuje STM32. 
@@ -39,4 +45,10 @@ def uart_connect(com_port: str, baud_rate: int):
 
     # Czytamy odpowiedź (używamy readline, żeby czekał na znak nowej linii \n)
     odpowiedz_start = ser.readline().decode('utf-8').strip()
-    print("Odpowiedz STM32:", odpowiedz_start)
+    # print("Odpowiedz STM32:", odpowiedz_start)
+    if odpowiedz_start != "ACK_STREAM":
+        # print("Nie otrzymano ACK_STREAM. Sprawdź połączenie i konfigurację STM32.")
+        ser.close()
+        return False
+    # print("Strumień danych aktywowany. Oczekiwanie na dane...") 
+    return True

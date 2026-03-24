@@ -134,11 +134,14 @@ async def scan_com_ports():
 @app.post("/robot/connect")
 async def connect_robot(data: ConnectRequest):
     
+    #TODO: Implement actual UART connection logic here using data.com_port and data.baud_rate
+    if uart.uart_connect('/dev/ttyACM0', 115200):
+        robot_state["connected"] = True
+        robot_state["com_port"] = data.com_port     #TODO: Replace with actual com_port used in uart_connect
+        robot_state["baud_rate"] = data.baud_rate   #TODO: Replace with actual com_port used in uart_connect
+    else:
+        raise HTTPException(status_code=500, detail="Nie można połączyć się z robotem. Sprawdź połączenie i konfigurację STM32.")
     
-    robot_state["connected"] = False
-    robot_state["com_port"] = data.com_port
-    robot_state["baud_rate"] = data.baud_rate
-
     print_message(
         "connect",
         {"com_port": data.com_port, "baud_rate": data.baud_rate},

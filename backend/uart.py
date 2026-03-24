@@ -8,14 +8,14 @@ def list_serial_ports():
     com_ports = list(serial.tools.list_ports.comports())
     stm_port =[]
     for p in com_ports:
-        if "ACM" in p.device:  # Szukamy portu, który zawiera "ACM" (typowy dla STM32)
-            stm_port.append(p)
-    return stm_port
+        if "STM" in p.description:  # Szukamy portu, który zawiera "ACM" (typowy dla STM32)
+            stm_port.append(p.device)
+    return stm_port 
 
-def connect():
+def uart_connect(com_port: str, baud_rate: int):
     # 1. Otwieramy port (Zwiększyłem timeout do 0.1s dla pewności)
     try:
-        ser = serial.Serial('/dev/ttyACM0', 115200, timeout=0.1)
+        ser = serial.Serial(com_port, baud_rate, timeout=0.1)
         print(f"Otwarto port: {ser.name}")
     except Exception as e:
         print(f"Blad otwarcia portu: {e}")

@@ -1,6 +1,6 @@
 import { ActionButton } from "./ActionButton";
 
-type RightControlsProps = {
+type LeftMainControlsProps = {
     isStopPressed: boolean;
     selectedCom: string;
     baudRate: string;
@@ -20,27 +20,27 @@ type RightControlsProps = {
     onNextPosition: () => void;
 };
 
-export function RightControls({
-                                  isStopPressed,
-                                  selectedCom,
-                                  baudRate,
-                                  mode,
-                                  busy = false,
-                                  onSelectedComChange,
-                                  onBaudRateChange,
-                                  onConnect,
-                                  onStop,
-                                  onReset,
-                                  onToggleMode,
-                                  onRecord,
-                                  onResume,
-                                  onPlay,
-                                  onPrevPosition,
-                                  onPause,
-                                  onNextPosition,
-                              }: RightControlsProps) {
+export function LeftMainControls({
+                                     isStopPressed,
+                                     selectedCom,
+                                     baudRate,
+                                     mode,
+                                     busy = false,
+                                     onSelectedComChange,
+                                     onBaudRateChange,
+                                     onConnect,
+                                     onStop,
+                                     onReset,
+                                     onToggleMode,
+                                     onRecord,
+                                     onResume,
+                                     onPlay,
+                                     onPrevPosition,
+                                     onPause,
+                                     onNextPosition,
+                                 }: LeftMainControlsProps) {
     return (
-        <aside className="right-controls">
+        <aside className="left-main-controls">
             <div className="connection-panel">
                 <select
                     className="connection-panel__select"
@@ -74,8 +74,8 @@ export function RightControls({
                 </button>
             </div>
 
-            <div className="right-controls__top">
-                <div className="right-controls__stop-wrap">
+            <div className="left-main-controls__top">
+                <div className="left-main-controls__stop-wrap">
                     <ActionButton
                         label="STOP!"
                         variant="danger"
@@ -86,7 +86,7 @@ export function RightControls({
                     />
                 </div>
 
-                <div className="right-controls__side-buttons">
+                <div className="left-main-controls__side-buttons">
                     <button
                         className="reset-button"
                         onClick={onReset}
@@ -106,7 +106,7 @@ export function RightControls({
                 </div>
             </div>
 
-            <div className="right-controls__grid">
+            <div className="left-main-controls__grid">
                 <ActionButton label="Record" variant="ghost" onClick={onRecord} disabled={busy} />
                 <ActionButton label="Resume" variant="ghost" onClick={onResume} disabled={busy} />
                 <ActionButton label="Play" variant="ghost" onClick={onPlay} disabled={busy} />

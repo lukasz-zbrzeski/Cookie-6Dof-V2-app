@@ -1,0 +1,28 @@
+.main-tab-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.5fr);
+    gap: 48px;
+    align-items: start;
+}
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+@media (max-width: 1199px) {
+    .main-tab-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767px) {
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
+}

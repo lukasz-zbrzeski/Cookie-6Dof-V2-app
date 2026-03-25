@@ -1,0 +1,20 @@
+.tabs-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.tab-button {
+    min-width: 120px;
+    border: 4px solid #111111;
+    background: #f0f0f0;
+    color: #333333;
+    padding: 14px 24px;
+    font-weight: 700;
+}
+
+.tab-button--active {
+    background: #c8c8c8;
+    color: #111111;
+}

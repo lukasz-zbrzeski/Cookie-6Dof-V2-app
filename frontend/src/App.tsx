@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { PlaceholderTab } from "./components/PlaceholderTab";
 import { TabButton } from "./components/TabButton";
-import { TabOneContent } from "./components/TabOneContent";
+import { MainTab } from "./components/MainTab";
+import {ConfigTab} from "./components/ConfigTab";
 
 export type TabKey = "tab1" | "tab2" | "tab3";
 
@@ -29,19 +29,9 @@ export default function App() {
         </header>
 
         <main>
-          {activeTab === "tab1" && <TabOneContent />}
-          {activeTab === "tab2" && (
-              <PlaceholderTab
-                  title="Plots"
-                  description="Miejsce gotowe na kolejny widok panelu."
-              />
-          )}
-          {activeTab === "tab3" && (
-              <PlaceholderTab
-                  title="Config"
-                  description="Miejsce gotowe na kolejny widok panelu."
-              />
-          )}
+          {activeTab === "tab1" && <MainTab />}
+          {activeTab === "tab2"}
+          {activeTab === "tab3" && <ConfigTab />}
         </main>
       </div>
   );

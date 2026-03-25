@@ -5,8 +5,9 @@ import psycopg
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+import uart as uart
 
-
+# 8000 - default FastAPI port
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://robotuser:robotpass@db:5432/robotdb",
@@ -59,7 +60,7 @@ class RobotStateResponse(BaseModel):
     joints: list[float]
     cartesian: list[float]
 
-
+# Initialize robot state with default values
 robot_state = {
     "connected": False,
     "stopped": False,
@@ -80,7 +81,7 @@ def round2(value: float) -> float:
     return round(value, 2)
 
 
-def send_uart_command(command: str, payload: dict | None = None) -> None:
+def print_message(command: str, payload: dict | None = None) -> None:
     print("UART COMMAND:", command, payload)
 
 
@@ -124,43 +125,56 @@ async def get_robot_state():
     return robot_state
 
 
+@app.get("/robot/scan_com_ports")
+async def scan_com_ports():
+    # Scanning COM port  
+    return {"com_ports": uart.list_serial_ports()} 
+
+
 @app.post("/robot/connect")
 async def connect_robot(data: ConnectRequest):
-    robot_state["connected"] = True
-    robot_state["com_port"] = data.com_port
-    robot_state["baud_rate"] = data.baud_rate
+    print(f"Rozpoczynam próbę połączenia na porcie {data.com_port}...")
+    
+    if uart.uart_connect(data.com_port, data.baud_rate):
+    # if uart.uart_connect('/dev/ttyACM0', 115200):  #TODO: Replace with actual com_port and baud_rate from data
+        robot_state["connected"] = True
+        robot_state["com_port"] = data.com_port     #TODO: Replace with actual com_port used in uart_connect
+        robot_state["baud_rate"] = data.baud_rate   #TODO: Replace with actual com_port used in uart_connect
+        print_message(
+            "connect",
+            {"com_port": data.com_port, "baud_rate": data.baud_rate},
+        )
 
-    send_uart_command(
-        "connect",
-        {"com_port": data.com_port, "baud_rate": data.baud_rate},
-    )
-
-    return {
-        "message": "Połączono z robotem.",
-        "connected": True,
-        "com_port": data.com_port,
-        "baud_rate": data.baud_rate,
-    }
+        return {
+            "message": "Połączono z robotem.",
+            "connected": True,
+            "com_port": data.com_port,
+            "baud_rate": data.baud_rate,
+        }
+    else:
+        raise HTTPException(status_code=500, 
+            detail="Nie można połączyć się z robotem. Sprawdź połączenie i konfigurację STM32.")
+    
 
 
 @app.post("/robot/stop")
 async def stop_robot():
     robot_state["stopped"] = True
-    send_uart_command("stop")
+    print_message("stop")
     return {"message": "Robot zatrzymany.", "stopped": True}
 
 
 @app.post("/robot/reset")
 async def reset_robot():
     robot_state["stopped"] = False
-    send_uart_command("reset")
+    print_message("reset")
     return {"message": "Reset wykonany.", "stopped": False}
 
 
 @app.post("/robot/mode")
 async def set_mode(data: ModeRequest):
     robot_state["mode"] = data.mode
-    send_uart_command("mode", {"mode": data.mode})
+    print_message("mode", {"mode": data.mode})
     return {"message": "Tryb zmieniony.", "mode": data.mode}
 
 
@@ -172,7 +186,7 @@ async def get_joints():
 @app.put("/robot/joints")
 async def set_joints(data: JointsUpdateRequest):
     robot_state["joints"] = [round2(v) for v in data.values]
-    send_uart_command("set_joints", {"values": robot_state["joints"]})
+    print_message("set_joints", {"values": robot_state["joints"]})
     return {"message": "Wartości joints zaktualizowane.", "values": robot_state["joints"]}
 
 
@@ -180,7 +194,7 @@ async def set_joints(data: JointsUpdateRequest):
 async def increment_joint(index: int):
     ensure_index(index)
     robot_state["joints"][index] = round2(robot_state["joints"][index] + 0.1)
-    send_uart_command("increment_joint", {"index": index, "value": robot_state["joints"][index]})
+    print_message("increment_joint", {"index": index, "value": robot_state["joints"][index]})
     return {"values": robot_state["joints"]}
 
 
@@ -188,7 +202,7 @@ async def increment_joint(index: int):
 async def decrement_joint(index: int):
     ensure_index(index)
     robot_state["joints"][index] = round2(robot_state["joints"][index] - 0.1)
-    send_uart_command("decrement_joint", {"index": index, "value": robot_state["joints"][index]})
+    print_message("decrement_joint", {"index": index, "value": robot_state["joints"][index]})
     return {"values": robot_state["joints"]}
 
 
@@ -200,7 +214,7 @@ async def get_cartesian():
 @app.put("/robot/cartesian")
 async def set_cartesian(data: CartesianUpdateRequest):
     robot_state["cartesian"] = [round2(v) for v in data.values]
-    send_uart_command("set_cartesian", {"values": robot_state["cartesian"]})
+    print_message("set_cartesian", {"values": robot_state["cartesian"]})
     return {"message": "Wartości cartesian zaktualizowane.", "values": robot_state["cartesian"]}
 
 
@@ -208,7 +222,7 @@ async def set_cartesian(data: CartesianUpdateRequest):
 async def increment_cartesian(index: int):
     ensure_index(index)
     robot_state["cartesian"][index] = round2(robot_state["cartesian"][index] + 0.1)
-    send_uart_command("increment_cartesian", {"index": index, "value": robot_state["cartesian"][index]})
+    print_message("increment_cartesian", {"index": index, "value": robot_state["cartesian"][index]})
     return {"values": robot_state["cartesian"]}
 
 
@@ -216,13 +230,13 @@ async def increment_cartesian(index: int):
 async def decrement_cartesian(index: int):
     ensure_index(index)
     robot_state["cartesian"][index] = round2(robot_state["cartesian"][index] - 0.1)
-    send_uart_command("decrement_cartesian", {"index": index, "value": robot_state["cartesian"][index]})
+    print_message("decrement_cartesian", {"index": index, "value": robot_state["cartesian"][index]})
     return {"values": robot_state["cartesian"]}
 
 
 @app.post("/robot/record")
 async def record_position():
-    send_uart_command("record")
+    print_message("record")
     record_id = save_current_joints_to_db(robot_state["joints"])
     return {
         "message": "Pozycja zapisana.",
@@ -233,29 +247,29 @@ async def record_position():
 
 @app.post("/robot/play")
 async def play_motion():
-    send_uart_command("play")
+    print_message("play")
     return {"message": "Odtwarzanie uruchomione."}
 
 
 @app.post("/robot/pause")
 async def pause_motion():
-    send_uart_command("pause")
+    print_message("pause")
     return {"message": "Odtwarzanie wstrzymane."}
 
 
 @app.post("/robot/resume")
 async def resume_motion():
-    send_uart_command("resume")
+    print_message("resume")
     return {"message": "Odtwarzanie wznowione."}
 
 
 @app.post("/robot/prev-position")
 async def prev_position():
-    send_uart_command("prev_position")
+    print_message("prev_position")
     return {"message": "Przejście do poprzedniej pozycji."}
 
 
 @app.post("/robot/next-position")
 async def next_position():
-    send_uart_command("next_position")
+    print_message("next_position")
     return {"message": "Przejście do następnej pozycji."}

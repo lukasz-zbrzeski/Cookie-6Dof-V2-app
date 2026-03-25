@@ -32,8 +32,10 @@ services:
       CORS_ORIGINS: http://localhost:5173
     ports:
       - "8000:8000"
+    privileged: true
     volumes:
       - ./backend:/app
+      - /dev:/dev
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:

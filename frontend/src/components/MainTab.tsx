@@ -16,9 +16,10 @@ export function MainTab() {
         baudRate,
         busy,
         error,
+        availableComPorts,
         setSelectedCom,
         setBaudRate,
-        handleConnect,
+        handleConnectToggle,
         handleStop,
         handleReset,
         handleToggleMode,
@@ -38,13 +39,15 @@ export function MainTab() {
         <div className="main-tab-layout">
             <LeftMainControls
                 isStopPressed={isStopPressed}
+                connected={connected}
+                availableComPorts={availableComPorts}
                 selectedCom={selectedCom}
                 baudRate={baudRate}
                 mode={mode}
                 busy={busy}
                 onSelectedComChange={setSelectedCom}
                 onBaudRateChange={setBaudRate}
-                onConnect={handleConnect}
+                onConnectToggle={handleConnectToggle}
                 onStop={handleStop}
                 onReset={handleReset}
                 onToggleMode={handleToggleMode}

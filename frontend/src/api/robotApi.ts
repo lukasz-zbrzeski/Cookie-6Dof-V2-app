@@ -24,6 +24,11 @@ export async function getRobotState() {
     }>(response);
 }
 
+export async function scanComPorts() {
+    const response = await fetch(`${API_BASE_URL}/robot/scan_com_ports`);
+    return handleResponse<{ com_ports: string[] }>(response);
+}
+
 export async function connectRobot(comPort: string, baudRate: number) {
     const response = await fetch(`${API_BASE_URL}/robot/connect`, {
         method: "POST",
@@ -34,6 +39,14 @@ export async function connectRobot(comPort: string, baudRate: number) {
             com_port: comPort,
             baud_rate: baudRate,
         }),
+    });
+
+    return handleResponse(response);
+}
+
+export async function disconnectRobot() {
+    const response = await fetch(`${API_BASE_URL}/robot/disconnect`, {
+        method: "POST",
     });
 
     return handleResponse(response);

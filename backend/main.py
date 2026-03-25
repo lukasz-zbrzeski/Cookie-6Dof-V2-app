@@ -128,7 +128,7 @@ async def get_robot_state():
 @app.get("/robot/scan_com_ports")
 async def scan_com_ports():
     # Scanning COM port  
-    return {"com_ports": uart.list_serial_ports()} 
+    return {"com_ports": uart.list_serial_ports()}
 
 
 @app.post("/robot/connect")
@@ -152,9 +152,22 @@ async def connect_robot(data: ConnectRequest):
             "baud_rate": data.baud_rate,
         }
     else:
-        raise HTTPException(status_code=500, 
+        raise HTTPException(status_code=500,
             detail="Nie można połączyć się z robotem. Sprawdź połączenie i konfigurację STM32.")
     
+
+@app.post("/robot/disconnect")
+async def disconnect_robot():
+    robot_state["connected"] = False
+    robot_state["com_port"] = None
+    robot_state["baud_rate"] = None
+
+    print_message("disconnect")
+
+    return {
+        "message": "Disconnected from robot.",
+        "connected": False,
+    }
 
 
 @app.post("/robot/stop")

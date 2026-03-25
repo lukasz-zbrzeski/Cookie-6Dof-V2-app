@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ActionButton } from "./ActionButton";
-import { useRobotState } from "../hooks/useRobotState";
+import { useRobotState } from "../hooks/useRobotState.ts";
 
 type ConfigRow = {
     offset: number;

@@ -2,13 +2,15 @@ import { ActionButton } from "./ActionButton";
 
 type LeftMainControlsProps = {
     isStopPressed: boolean;
+    connected: boolean;
+    availableComPorts: string[];
     selectedCom: string;
     baudRate: string;
     mode: "manual" | "auto";
     busy?: boolean;
     onSelectedComChange: (value: string) => void;
     onBaudRateChange: (value: string) => void;
-    onConnect: () => void;
+    onConnectToggle: () => void;
     onStop: () => void;
     onReset: () => void;
     onToggleMode: () => void;
@@ -22,13 +24,15 @@ type LeftMainControlsProps = {
 
 export function LeftMainControls({
                                      isStopPressed,
+                                     connected,
+                                     availableComPorts,
                                      selectedCom,
                                      baudRate,
                                      mode,
                                      busy = false,
                                      onSelectedComChange,
                                      onBaudRateChange,
-                                     onConnect,
+                                     onConnectToggle,
                                      onStop,
                                      onReset,
                                      onToggleMode,
@@ -39,21 +43,26 @@ export function LeftMainControls({
                                      onPause,
                                      onNextPosition,
                                  }: LeftMainControlsProps) {
+    const noDevicesAvailable = availableComPorts.length === 0;
+
     return (
         <aside className="left-main-controls">
             <div className="connection-panel">
                 <select
                     className="connection-panel__select"
-                    value={selectedCom}
+                    value={noDevicesAvailable ? "NO_DEVICE" : selectedCom}
                     onChange={(e) => onSelectedComChange(e.target.value)}
-                    disabled={busy}
+                    disabled={busy || noDevicesAvailable || connected}
                 >
-                    <option value="COM1">COM1</option>
-                    <option value="COM2">COM2</option>
-                    <option value="COM3">COM3</option>
-                    <option value="COM4">COM4</option>
-                    <option value="COM5">COM5</option>
-                    <option value="COM6">COM6</option>
+                    {noDevicesAvailable ? (
+                        <option value="NO_DEVICE">No connected devices</option>
+                    ) : (
+                        availableComPorts.map((port) => (
+                            <option key={port} value={port}>
+                                {port}
+                            </option>
+                        ))
+                    )}
                 </select>
 
                 <input
@@ -62,15 +71,15 @@ export function LeftMainControls({
                     value={baudRate}
                     onChange={(e) => onBaudRateChange(e.target.value)}
                     placeholder="Baud rate"
-                    disabled={busy}
+                    disabled={busy || connected}
                 />
 
                 <button
                     className="connection-panel__button"
-                    onClick={onConnect}
-                    disabled={busy}
+                    onClick={onConnectToggle}
+                    disabled={busy || (!connected && noDevicesAvailable)}
                 >
-                    Connect
+                    {connected ? "Disconnect" : "Connect"}
                 </button>
             </div>
 

@@ -3,6 +3,7 @@ import {
     connectRobot,
     decrementCartesian,
     decrementJoint,
+    disconnectRobot,
     getRobotState,
     incrementCartesian,
     incrementJoint,
@@ -13,6 +14,7 @@ import {
     recordPosition,
     resetRobot,
     resumeMotion,
+    scanComPorts,
     setRobotMode,
     stopRobot,
 } from "../api/robotApi";
@@ -25,10 +27,35 @@ export function useRobotState() {
     const [connected, setConnected] = useState(false);
     const [isStopPressed, setIsStopPressed] = useState(false);
     const [mode, setMode] = useState<RobotMode>("manual");
-    const [selectedCom, setSelectedCom] = useState("COM1");
+    const [selectedCom, setSelectedCom] = useState("");
     const [baudRate, setBaudRate] = useState("115200");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+    const [availableComPorts, setAvailableComPorts] = useState<string[]>([]);
+
+    const loadComPorts = useCallback(async () => {
+        try {
+            const response = await scanComPorts();
+            const ports = response.com_ports ?? [];
+            setAvailableComPorts(ports);
+
+            setSelectedCom((prev) => {
+                if (ports.length === 0) {
+                    return "";
+                }
+
+                if (prev && ports.includes(prev)) {
+                    return prev;
+                }
+
+                return ports[0];
+            });
+        } catch (err) {
+            setAvailableComPorts([]);
+            setSelectedCom("");
+            setError(err instanceof Error ? err.message : "Failed to scan COM ports.");
+        }
+    }, []);
 
     const loadState = useCallback(async () => {
         try {
@@ -39,16 +66,27 @@ export function useRobotState() {
             setConnected(state.connected);
             setIsStopPressed(state.stopped);
             setMode(state.mode);
-            setSelectedCom(state.com_port ?? "COM1");
             setBaudRate(state.baud_rate ? String(state.baud_rate) : "115200");
+
+            setSelectedCom((prev) => {
+                if (state.com_port) {
+                    return state.com_port;
+                }
+                return prev;
+            });
         } catch (err) {
             setError(err instanceof Error ? err.message : "Nie udało się pobrać stanu robota.");
         }
     }, []);
 
     useEffect(() => {
-        loadState();
-    }, [loadState]);
+        const initialize = async () => {
+            await loadComPorts();
+            await loadState();
+        };
+
+        initialize();
+    }, [loadComPorts, loadState]);
 
     const withBusy = async (callback: () => Promise<void>) => {
         try {
@@ -62,10 +100,22 @@ export function useRobotState() {
         }
     };
 
-    const handleConnect = async () => {
+    const handleConnectToggle = async () => {
         await withBusy(async () => {
+            if (connected) {
+                await disconnectRobot();
+                await loadState();
+                await loadComPorts();
+                return;
+            }
+
+            if (!selectedCom) {
+                throw new Error("No device connected. Please connect a device first.");
+            }
+
             await connectRobot(selectedCom, Number(baudRate));
             await loadState();
+            await loadComPorts();
         });
     };
 
@@ -165,10 +215,12 @@ export function useRobotState() {
         baudRate,
         busy,
         error,
+        availableComPorts,
         setSelectedCom,
         setBaudRate,
         loadState,
-        handleConnect,
+        loadComPorts,
+        handleConnectToggle,
         handleStop,
         handleReset,
         handleToggleMode,

@@ -11,7 +11,7 @@ def list_serial_ports():
     com_ports = list(serial.tools.list_ports.comports())
     stm_port =[]
     for p in com_ports:
-        if "STM" in p.description:  # Szukamy portu, który zawiera "ACM" (typowy dla STM32)
+        if "STM" in p.description:  # Szukamy portu, który zawiera "STM" 
             stm_port.append(p.device)
     return stm_port 
 
@@ -39,16 +39,30 @@ def uart_connect(com_port: str, baud_rate: int):
 
     # 2. Wysyłamy komendę aktywującą strumień
     print("\n--- INICJALIZACJA ---")
-    ser.write(b"START_STREAM;")
-    ser.flush()  # FLUSH: Wymusza fizyczne wypchnięcie danych z Linuxa na kabel USB!
-    time.sleep(0.1) # Dajemy STM32 ułamek sekundy na przetworzenie
+    
+    try:
+        ser.write(b"START_STREAM;")
+        ser.flush()  
+        time.sleep(0.1) 
 
-    # Czytamy odpowiedź (używamy readline, żeby czekał na znak nowej linii \n)
-    odpowiedz_start = ser.readline().decode('utf-8').strip()
-    # print("Odpowiedz STM32:", odpowiedz_start)
-    if odpowiedz_start != "ACK_STREAM":
-        # print("Nie otrzymano ACK_STREAM. Sprawdź połączenie i konfigurację STM32.")
-        ser.close()
+        # Odczyt z zabezpieczeniem przed "krzakami" (errors='ignore')
+        raw_bytes = ser.readline()
+        odpowiedz_start = raw_bytes.decode('utf-8', errors='ignore').strip()
+        
+        # SUPER WAŻNE DEBUGOWANIE - to zobaczysz w logach Dockera:
+        print(f"[DEBUG] Surowe bajty z STM32: {raw_bytes}")
+        print(f"[DEBUG] Zdekodowany tekst: '{odpowiedz_start}'")
+
+        if odpowiedz_start != "ACK_STREAM":
+            print("[BŁĄD] Oczekiwano 'ACK_STREAM', a otrzymano coś innego. Przerywam.")
+            ser.close()
+            return False
+            
+        print("[SUKCES] Strumień danych aktywowany!") 
+        return True
+
+    except Exception as e:
+        print(f"[KRYTYCZNY BŁĄD PODCZAS CZYTANIA]: {e}")
+        if ser.is_open:
+            ser.close()
         return False
-    # print("Strumień danych aktywowany. Oczekiwanie na dane...") 
-    return True

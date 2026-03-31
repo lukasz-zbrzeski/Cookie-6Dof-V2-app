@@ -18,3 +18,10 @@
     background: #c8c8c8;
     color: #111111;
 }
+
+.tab-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #dcdcdc;
+    color: #666666;
+}

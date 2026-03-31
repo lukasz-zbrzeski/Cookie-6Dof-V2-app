@@ -4,6 +4,7 @@ type ValueCardProps = {
     title: string;
     values: number[];
     editable?: boolean;
+    disabled?: boolean;
     onIncrement?: (index: number) => void;
     onDecrement?: (index: number) => void;
 };
@@ -12,6 +13,7 @@ export function ValueCard({
                               title,
                               values,
                               editable = false,
+                              disabled = false,
                               onIncrement,
                               onDecrement,
                           }: ValueCardProps) {
@@ -26,6 +28,7 @@ export function ValueCard({
                             key={`${title}-${index}`}
                             value={value}
                             editable={editable}
+                            disabled={disabled}
                             onIncrement={() => onIncrement?.(index)}
                             onDecrement={() => onDecrement?.(index)}
                         />

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { ActionButton } from "./ActionButton";
-import { useRobotState } from "../hooks/useRobotState.ts";
 
 type ConfigRow = {
     offset: number;
@@ -8,6 +7,14 @@ type ConfigRow = {
     mapMax: number;
     angle: number;
     pwm: number;
+};
+
+type ConfigTabProps = {
+    connected: boolean;
+    isStopPressed: boolean;
+    mode: "manual" | "auto";
+    busy?: boolean;
+    error?: string;
 };
 
 const createInitialRows = (): ConfigRow[] =>
@@ -19,16 +26,14 @@ const createInitialRows = (): ConfigRow[] =>
         pwm: 0,
     }));
 
-export function ConfigTab() {
+export function ConfigTab({
+                              connected,
+                              isStopPressed,
+                              mode,
+                              busy = false,
+                              error = "",
+                          }: ConfigTabProps) {
     const [rows, setRows] = useState<ConfigRow[]>(createInitialRows());
-
-    const {
-        connected,
-        isStopPressed,
-        mode,
-        busy,
-        error,
-    } = useRobotState();
 
     const updateRowField = (
         rowIndex: number,
@@ -40,7 +45,7 @@ export function ConfigTab() {
                 index === rowIndex
                     ? {
                         ...row,
-                        [field]: value,
+                        [field]: field === "offset" ? Math.trunc(value) : value,
                     }
                     : row
             )
@@ -94,9 +99,14 @@ export function ConfigTab() {
                         <input
                             className="config-cell-input"
                             type="number"
+                            step="1"
                             value={row.offset}
                             onChange={(e) =>
-                                updateRowField(rowIndex, "offset", Number(e.target.value))
+                                updateRowField(
+                                    rowIndex,
+                                    "offset",
+                                    parseInt(e.target.value || "0", 10)
+                                )
                             }
                         />
 

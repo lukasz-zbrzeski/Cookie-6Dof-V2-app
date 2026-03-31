@@ -44,6 +44,7 @@ export function LeftMainControls({
                                      onNextPosition,
                                  }: LeftMainControlsProps) {
     const noDevicesAvailable = availableComPorts.length === 0;
+    const controlsDisabled = busy || !connected;
 
     return (
         <aside className="left-main-controls">
@@ -91,7 +92,7 @@ export function LeftMainControls({
                         circle
                         pressed={isStopPressed}
                         onClick={onStop}
-                        disabled={busy || isStopPressed}
+                        disabled={controlsDisabled || isStopPressed}
                     />
                 </div>
 
@@ -99,7 +100,7 @@ export function LeftMainControls({
                     <button
                         className="reset-button"
                         onClick={onReset}
-                        disabled={busy}
+                        disabled={controlsDisabled}
                     >
                         Reset
                     </button>
@@ -108,7 +109,7 @@ export function LeftMainControls({
                         className="mode-button"
                         type="button"
                         onClick={onToggleMode}
-                        disabled={busy}
+                        disabled={controlsDisabled}
                     >
                         {mode === "manual" ? "Man/Auto (Manual)" : "Man/Auto (Auto)"}
                     </button>
@@ -116,12 +117,42 @@ export function LeftMainControls({
             </div>
 
             <div className="left-main-controls__grid">
-                <ActionButton label="Record" variant="ghost" onClick={onRecord} disabled={busy} />
-                <ActionButton label="Resume" variant="ghost" onClick={onResume} disabled={busy} />
-                <ActionButton label="Play" variant="ghost" onClick={onPlay} disabled={busy} />
-                <ActionButton label="Prev position" variant="ghost" onClick={onPrevPosition} disabled={busy} />
-                <ActionButton label="Pause" variant="ghost" onClick={onPause} disabled={busy} />
-                <ActionButton label="Next position" variant="ghost" onClick={onNextPosition} disabled={busy} />
+                <ActionButton
+                    label="Record"
+                    variant="ghost"
+                    onClick={onRecord}
+                    disabled={controlsDisabled}
+                />
+                <ActionButton
+                    label="Resume"
+                    variant="ghost"
+                    onClick={onResume}
+                    disabled={controlsDisabled}
+                />
+                <ActionButton
+                    label="Play"
+                    variant="ghost"
+                    onClick={onPlay}
+                    disabled={controlsDisabled}
+                />
+                <ActionButton
+                    label="Prev position"
+                    variant="ghost"
+                    onClick={onPrevPosition}
+                    disabled={controlsDisabled}
+                />
+                <ActionButton
+                    label="Pause"
+                    variant="ghost"
+                    onClick={onPause}
+                    disabled={controlsDisabled}
+                />
+                <ActionButton
+                    label="Next position"
+                    variant="ghost"
+                    onClick={onNextPosition}
+                    disabled={controlsDisabled}
+                />
             </div>
         </aside>
     );

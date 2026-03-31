@@ -1,6 +1,7 @@
 type ValueFieldProps = {
     value: number;
     editable?: boolean;
+    disabled?: boolean;
     onIncrement?: () => void;
     onDecrement?: () => void;
 };
@@ -10,6 +11,7 @@ const formatFloat = (value: number) => value.toFixed(2);
 export function ValueField({
                                value,
                                editable = false,
+                               disabled = false,
                                onIncrement,
                                onDecrement,
                            }: ValueFieldProps) {
@@ -23,6 +25,7 @@ export function ValueField({
                         type="button"
                         className="value-field__button"
                         onClick={onIncrement}
+                        disabled={disabled}
                     >
                         +
                     </button>
@@ -30,6 +33,7 @@ export function ValueField({
                         type="button"
                         className="value-field__button"
                         onClick={onDecrement}
+                        disabled={disabled}
                     >
                         -
                     </button>

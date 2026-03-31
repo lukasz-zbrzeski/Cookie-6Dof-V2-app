@@ -74,3 +74,9 @@
 .value-field__button:hover {
     background: #dcdcdc;
 }
+
+.value-field__button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #dcdcdc;
+}

@@ -5,7 +5,11 @@ import { useRobotState } from "../hooks/useRobotState";
 const fallbackCard3 = [3.42, 3.79, 4.16, 4.53, 4.9, 5.27];
 const fallbackCard4 = [4.18, 4.55, 4.92, 5.29, 5.66, 6.03];
 
-export function MainTab() {
+type MainTabProps = {
+    robot: ReturnType<typeof useRobotState>;
+};
+
+export function MainTab({ robot }: MainTabProps) {
     const {
         joints,
         cartesian,
@@ -33,7 +37,7 @@ export function MainTab() {
         handleDecrementJoint,
         handleIncrementCartesian,
         handleDecrementCartesian,
-    } = useRobotState();
+    } = robot;
 
     return (
         <div className="main-tab-layout">
@@ -64,6 +68,7 @@ export function MainTab() {
                     title="Current Joint values"
                     values={joints}
                     editable
+                    disabled={!connected || busy}
                     onIncrement={handleIncrementJoint}
                     onDecrement={handleDecrementJoint}
                 />
@@ -72,6 +77,7 @@ export function MainTab() {
                     title="Current Cartesian values"
                     values={cartesian}
                     editable
+                    disabled={!connected || busy}
                     onIncrement={handleIncrementCartesian}
                     onDecrement={handleDecrementCartesian}
                 />

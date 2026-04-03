@@ -21,6 +21,23 @@ import {
 
 export type RobotMode = "manual" | "auto";
 
+export type ServoConfigRow = {
+    offset: number;
+    mapMin: number;
+    mapMax: number;
+    angle: number;
+    pwm: number;
+};
+
+const createDefaultConfigRows = (): ServoConfigRow[] =>
+    Array.from({ length: 6 }, () => ({
+        offset: 0,
+        mapMin: 0,
+        mapMax: 0,
+        angle: 0,
+        pwm: 0,
+    }));
+
 export function useRobotState() {
     const [joints, setJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
     const [cartesian, setCartesian] = useState<number[]>([0, 0, 0, 0, 0, 0]);
@@ -32,6 +49,7 @@ export function useRobotState() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
     const [availableComPorts, setAvailableComPorts] = useState<string[]>([]);
+    const [configRows, setConfigRows] = useState<ServoConfigRow[]>(createDefaultConfigRows());
 
     const loadComPorts = useCallback(async () => {
         try {
@@ -113,10 +131,64 @@ export function useRobotState() {
                 throw new Error("No device connected. Please connect a device first.");
             }
 
-            await connectRobot(selectedCom, Number(baudRate));
+            const response = await connectRobot(selectedCom, Number(baudRate));
+
+            setConfigRows((prev) =>
+                prev.map((row, index) => ({
+                    ...row,
+                    offset: Math.trunc(response.servos_offset?.[index] ?? 0),
+                    mapMin: response.servos_map_min?.[index] ?? 0,
+                    mapMax: response.servos_map_max?.[index] ?? 0,
+                    angle: response.servos_curr_angle?.[index] ?? 0,
+                }))
+            );
+
             await loadState();
             await loadComPorts();
         });
+    };
+
+    const updateConfigRowField = (
+        rowIndex: number,
+        field: keyof ServoConfigRow,
+        value: number
+    ) => {
+        setConfigRows((prev) =>
+            prev.map((row, index) =>
+                index === rowIndex
+                    ? {
+                        ...row,
+                        [field]: field === "offset" ? Math.trunc(value) : value,
+                    }
+                    : row
+            )
+        );
+    };
+
+    const handleConfigPwmIncrement = (rowIndex: number) => {
+        setConfigRows((prev) =>
+            prev.map((row, index) =>
+                index === rowIndex
+                    ? {
+                        ...row,
+                        pwm: row.pwm + 1,
+                    }
+                    : row
+            )
+        );
+    };
+
+    const handleConfigPwmDecrement = (rowIndex: number) => {
+        setConfigRows((prev) =>
+            prev.map((row, index) =>
+                index === rowIndex
+                    ? {
+                        ...row,
+                        pwm: Math.max(row.pwm - 1, 0),
+                    }
+                    : row
+            )
+        );
     };
 
     const handleStop = async () => {
@@ -216,6 +288,7 @@ export function useRobotState() {
         busy,
         error,
         availableComPorts,
+        configRows,
         setSelectedCom,
         setBaudRate,
         loadState,
@@ -234,5 +307,8 @@ export function useRobotState() {
         handlePrevPosition,
         handlePause,
         handleNextPosition,
+        updateConfigRowField,
+        handleConfigPwmIncrement,
+        handleConfigPwmDecrement,
     };
 }

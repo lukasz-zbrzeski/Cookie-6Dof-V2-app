@@ -58,6 +58,10 @@ export default function App() {
                         mode={robot.mode}
                         busy={robot.busy}
                         error={robot.error}
+                        rows={robot.configRows}
+                        onUpdateRowField={robot.updateConfigRowField}
+                        onPwmIncrement={robot.handleConfigPwmIncrement}
+                        onPwmDecrement={robot.handleConfigPwmDecrement}
                     />
                 )}
             </main>

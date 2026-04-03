@@ -1,13 +1,5 @@
-import { useState } from "react";
 import { ActionButton } from "./ActionButton";
-
-type ConfigRow = {
-    offset: number;
-    mapMin: number;
-    mapMax: number;
-    angle: number;
-    pwm: number;
-};
+import type { ServoConfigRow } from "../hooks/useRobotState";
 
 type ConfigTabProps = {
     connected: boolean;
@@ -15,16 +7,15 @@ type ConfigTabProps = {
     mode: "manual" | "auto";
     busy?: boolean;
     error?: string;
+    rows: ServoConfigRow[];
+    onUpdateRowField: (
+        rowIndex: number,
+        field: keyof ServoConfigRow,
+        value: number
+    ) => void;
+    onPwmIncrement: (rowIndex: number) => void;
+    onPwmDecrement: (rowIndex: number) => void;
 };
-
-const createInitialRows = (): ConfigRow[] =>
-    Array.from({ length: 6 }, () => ({
-        offset: 0,
-        mapMin: 0,
-        mapMax: 100,
-        angle: 0,
-        pwm: 0,
-    }));
 
 export function ConfigTab({
                               connected,
@@ -32,52 +23,11 @@ export function ConfigTab({
                               mode,
                               busy = false,
                               error = "",
+                              rows,
+                              onUpdateRowField,
+                              onPwmIncrement,
+                              onPwmDecrement,
                           }: ConfigTabProps) {
-    const [rows, setRows] = useState<ConfigRow[]>(createInitialRows());
-
-    const updateRowField = (
-        rowIndex: number,
-        field: keyof Omit<ConfigRow, "pwm">,
-        value: number
-    ) => {
-        setRows((prev) =>
-            prev.map((row, index) =>
-                index === rowIndex
-                    ? {
-                        ...row,
-                        [field]: field === "offset" ? Math.trunc(value) : value,
-                    }
-                    : row
-            )
-        );
-    };
-
-    const handlePwmIncrement = (rowIndex: number) => {
-        setRows((prev) =>
-            prev.map((row, index) =>
-                index === rowIndex
-                    ? {
-                        ...row,
-                        pwm: row.pwm + 1,
-                    }
-                    : row
-            )
-        );
-    };
-
-    const handlePwmDecrement = (rowIndex: number) => {
-        setRows((prev) =>
-            prev.map((row, index) =>
-                index === rowIndex
-                    ? {
-                        ...row,
-                        pwm: Math.max(row.pwm - 1, 0),
-                    }
-                    : row
-            )
-        );
-    };
-
     const handleConfirm = () => {
         console.log("Config rows:", rows);
     };
@@ -102,7 +52,7 @@ export function ConfigTab({
                             step="1"
                             value={row.offset}
                             onChange={(e) =>
-                                updateRowField(
+                                onUpdateRowField(
                                     rowIndex,
                                     "offset",
                                     parseInt(e.target.value || "0", 10)
@@ -115,7 +65,7 @@ export function ConfigTab({
                             type="number"
                             value={row.mapMin}
                             onChange={(e) =>
-                                updateRowField(rowIndex, "mapMin", Number(e.target.value))
+                                onUpdateRowField(rowIndex, "mapMin", Number(e.target.value))
                             }
                         />
 
@@ -124,7 +74,7 @@ export function ConfigTab({
                             type="number"
                             value={row.mapMax}
                             onChange={(e) =>
-                                updateRowField(rowIndex, "mapMax", Number(e.target.value))
+                                onUpdateRowField(rowIndex, "mapMax", Number(e.target.value))
                             }
                         />
 
@@ -134,20 +84,20 @@ export function ConfigTab({
                             step="0.01"
                             value={row.angle}
                             onChange={(e) =>
-                                updateRowField(rowIndex, "angle", Number(e.target.value))
+                                onUpdateRowField(rowIndex, "angle", Number(e.target.value))
                             }
                         />
 
                         <ActionButton
                             label="PWM-"
                             variant="ghost"
-                            onClick={() => handlePwmDecrement(rowIndex)}
+                            onClick={() => onPwmDecrement(rowIndex)}
                         />
 
                         <ActionButton
                             label="PWM+"
                             variant="ghost"
-                            onClick={() => handlePwmIncrement(rowIndex)}
+                            onClick={() => onPwmIncrement(rowIndex)}
                         />
                     </div>
                 ))}

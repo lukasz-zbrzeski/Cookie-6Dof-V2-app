@@ -41,7 +41,16 @@ export async function connectRobot(comPort: string, baudRate: number) {
         }),
     });
 
-    return handleResponse(response);
+    return handleResponse<{
+        message: string;
+        connected: boolean;
+        com_port: string;
+        baud_rate: number;
+        servos_offset: number[];
+        servos_map_min: number[];
+        servos_map_max: number[];
+        servos_curr_angle: number[];
+    }>(response);
 }
 
 export async function disconnectRobot() {

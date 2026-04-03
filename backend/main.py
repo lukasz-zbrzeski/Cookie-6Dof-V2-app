@@ -2,12 +2,12 @@ import os
 
 
 from robot_state import (
-    ConnectRequest, 
-    JointsUpdateRequest, 
-    CartesianUpdateRequest, 
-    ModeRequest, 
-    RobotStateResponse, 
-    robot_state
+    ConnectRequest,
+    JointsUpdateRequest,
+    CartesianUpdateRequest,
+    ModeRequest,
+    RobotStateResponse,
+    robot_state,
 )
 import psycopg
 from fastapi import FastAPI, HTTPException
@@ -89,27 +89,30 @@ async def get_robot_state():
 
 @app.get("/robot/scan_com_ports")
 async def scan_com_ports():
-    # Scanning COM port  
+    # Scanning COM port
     return {"com_ports": uart.list_serial_ports()}
 
 
 @app.post("/robot/connect")
 async def connect_robot(data: ConnectRequest):
     print(f"Rozpoczynam próbę połączenia na porcie {data.com_port}...")
-    
+
     if uart.connect(data.com_port, data.baud_rate):
-    # if uart.connect('/dev/ttyACM0', 115200):  #TODO: Replace with actual com_port and baud_rate from data
+        # if uart.connect('/dev/ttyACM0', 115200):  #TODO: Replace with actual com_port and baud_rate from data
         robot_state["connected"] = True
-        robot_state["com_port"] = data.com_port    
-        robot_state["baud_rate"] = data.baud_rate   
+        robot_state["com_port"] = data.com_port
+        robot_state["baud_rate"] = data.baud_rate
         print_message(
             "connect",
             {"com_port": data.com_port, "baud_rate": data.baud_rate},
         )
 
         robot_config = uart.get_config()
-        if robot_config is None:    
-            raise HTTPException(status_code=400, detail="Nie można odczytać konfiguracji robota. Sprawdź połączenie i konfigurację STM32.")
+        if robot_config is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Nie można odczytać konfiguracji robota. Sprawdź połączenie i konfigurację STM32.",
+            )
         else:
             return {
                 "message": "Połączono z robotem.",
@@ -123,9 +126,11 @@ async def connect_robot(data: ConnectRequest):
                 "servos_curr_angle": [servo["angle"] for servo in robot_config],
             }
     else:
-        raise HTTPException(status_code=400,
-            detail="Nie można połączyć się z robotem. Sprawdź połączenie i konfigurację STM32.")
-    
+        raise HTTPException(
+            status_code=400,
+            detail="Nie można połączyć się z robotem. Sprawdź połączenie i konfigurację STM32.",
+        )
+
 
 @app.post("/robot/disconnect")
 async def disconnect_robot():
@@ -172,14 +177,19 @@ async def get_joints():
 async def set_joints(data: JointsUpdateRequest):
     robot_state["joints"] = [round2(v) for v in data.values]
     print_message("set_joints", {"values": robot_state["joints"]})
-    return {"message": "Wartości joints zaktualizowane.", "values": robot_state["joints"]}
+    return {
+        "message": "Wartości joints zaktualizowane.",
+        "values": robot_state["joints"],
+    }
 
 
 @app.patch("/robot/joints/{index}/increment")
 async def increment_joint(index: int):
     ensure_index(index)
     robot_state["joints"][index] = round2(robot_state["joints"][index] + 0.1)
-    print_message("increment_joint", {"index": index, "value": robot_state["joints"][index]})
+    print_message(
+        "increment_joint", {"index": index, "value": robot_state["joints"][index]}
+    )
     return {"values": robot_state["joints"]}
 
 
@@ -187,7 +197,9 @@ async def increment_joint(index: int):
 async def decrement_joint(index: int):
     ensure_index(index)
     robot_state["joints"][index] = round2(robot_state["joints"][index] - 0.1)
-    print_message("decrement_joint", {"index": index, "value": robot_state["joints"][index]})
+    print_message(
+        "decrement_joint", {"index": index, "value": robot_state["joints"][index]}
+    )
     return {"values": robot_state["joints"]}
 
 
@@ -200,14 +212,20 @@ async def get_cartesian():
 async def set_cartesian(data: CartesianUpdateRequest):
     robot_state["cartesian"] = [round2(v) for v in data.values]
     print_message("set_cartesian", {"values": robot_state["cartesian"]})
-    return {"message": "Wartości cartesian zaktualizowane.", "values": robot_state["cartesian"]}
+    return {
+        "message": "Wartości cartesian zaktualizowane.",
+        "values": robot_state["cartesian"],
+    }
 
 
 @app.patch("/robot/cartesian/{index}/increment")
 async def increment_cartesian(index: int):
     ensure_index(index)
     robot_state["cartesian"][index] = round2(robot_state["cartesian"][index] + 0.1)
-    print_message("increment_cartesian", {"index": index, "value": robot_state["cartesian"][index]})
+    print_message(
+        "increment_cartesian",
+        {"index": index, "value": robot_state["cartesian"][index]},
+    )
     return {"values": robot_state["cartesian"]}
 
 
@@ -215,7 +233,10 @@ async def increment_cartesian(index: int):
 async def decrement_cartesian(index: int):
     ensure_index(index)
     robot_state["cartesian"][index] = round2(robot_state["cartesian"][index] - 0.1)
-    print_message("decrement_cartesian", {"index": index, "value": robot_state["cartesian"][index]})
+    print_message(
+        "decrement_cartesian",
+        {"index": index, "value": robot_state["cartesian"][index]},
+    )
     return {"values": robot_state["cartesian"]}
 
 

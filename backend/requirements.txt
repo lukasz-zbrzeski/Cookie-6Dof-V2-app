@@ -2,3 +2,4 @@ fastapi
 uvicorn[standard]
 psycopg[binary]
 pyserial
+black==24.3.0

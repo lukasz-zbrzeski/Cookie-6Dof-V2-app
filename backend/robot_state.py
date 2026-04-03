@@ -1,6 +1,7 @@
 from typing import Literal
 from pydantic import BaseModel, Field
 
+
 class ConnectRequest(BaseModel):
     com_port: str = Field(..., examples=["COM3"])
     baud_rate: int = Field(..., gt=0, examples=[115200])
@@ -36,6 +37,8 @@ class RobotStateResponse(BaseModel):
     cartesian: list[float]
 
     # Initialize robot state with default values
+
+
 robot_state = {
     "connected": False,
     "stopped": False,

@@ -1,0 +1,16 @@
+[tool.black]
+# Maksymalna długość linijki (88 to standard Blacka, ale wielu woli 100 lub 120)
+line-length = 88 
+
+# Docelowa wersja Pythona (pomaga Blackowi używać najnowszych funkcji formatowania)
+target-version = ['py311'] 
+
+# Mówimy Blackowi, żeby ignorował wirtualne środowiska i foldery Dockera
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | __pycache__
+)/
+'''

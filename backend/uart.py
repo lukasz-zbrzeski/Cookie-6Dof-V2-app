@@ -84,7 +84,7 @@ def get_config():
             
             raw_bytes = ser.readline()
             config_str = raw_bytes.decode('utf-8', errors='ignore').strip()
-            print(f"[DEBUG] Otrzymana konfiguracja: '{config_str}'")
+            print(f"[DEBUG] Otrzymana konfiguracja: '{raw_bytes}'")
             
             # --- ROZPOCZYNAMY PARSOWANIE ---
             # Sprawdzamy, czy ramka ma poprawny nagłówek i zakończenie

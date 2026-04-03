@@ -167,6 +167,7 @@ async def connect_robot(data: ConnectRequest):
 
 @app.post("/robot/disconnect")
 async def disconnect_robot():
+    uart.disconnect()
     robot_state["connected"] = False
     robot_state["com_port"] = None
     robot_state["baud_rate"] = None

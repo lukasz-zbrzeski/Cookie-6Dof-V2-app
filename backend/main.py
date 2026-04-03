@@ -1,10 +1,18 @@
 import os
-from typing import Literal
 
+
+from robot_state import (
+    ConnectRequest, 
+    JointsUpdateRequest, 
+    CartesianUpdateRequest, 
+    ModeRequest, 
+    RobotStateResponse, 
+    robot_state
+)
 import psycopg
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+
 import uart as uart
 
 # 8000 - default FastAPI port
@@ -24,52 +32,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-class ConnectRequest(BaseModel):
-    com_port: str = Field(..., examples=["COM3"])
-    baud_rate: int = Field(..., gt=0, examples=[115200])
-
-
-class JointsUpdateRequest(BaseModel):
-    values: list[float]
-
-    def model_post_init(self, __context):
-        if len(self.values) != 6:
-            raise ValueError("Joints muszą mieć dokładnie 6 wartości.")
-
-
-class CartesianUpdateRequest(BaseModel):
-    values: list[float]
-
-    def model_post_init(self, __context):
-        if len(self.values) != 6:
-            raise ValueError("Cartesian muszą mieć dokładnie 6 wartości.")
-
-
-class ModeRequest(BaseModel):
-    mode: Literal["manual", "auto"]
-
-
-class RobotStateResponse(BaseModel):
-    connected: bool
-    stopped: bool
-    mode: Literal["manual", "auto"]
-    com_port: str | None
-    baud_rate: int | None
-    joints: list[float]
-    cartesian: list[float]
-
-# Initialize robot state with default values
-robot_state = {
-    "connected": False,
-    "stopped": False,
-    "mode": "manual",
-    "com_port": None,
-    "baud_rate": None,
-    "joints": [1.15, 1.52, 1.89, 2.26, 2.63, 3.00],
-    "cartesian": [2.05, 2.42, 2.79, 3.16, 3.53, 3.90],
-}
 
 
 def ensure_index(index: int) -> None:

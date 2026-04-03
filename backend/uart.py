@@ -15,7 +15,7 @@ def list_serial_ports():
             stm_port.append(p.device)
     return stm_port 
 
-def uart_connect(com_port: str, baud_rate: int):
+def connect(com_port: str, baud_rate: int):
     # 1. Otwieramy port (Zwiększyłem timeout do 0.1s dla pewności)
     global ser
 
@@ -66,3 +66,67 @@ def uart_connect(com_port: str, baud_rate: int):
         if ser.is_open:
             ser.close()
         return False
+def disconnect():
+    global ser
+    if ser and ser.is_open:
+        ser.close()
+        print("Port zamknięty.")
+def get_config():
+    global ser
+    if ser and ser.is_open:
+        try:
+            ser.write(b"GET_CONFIG;")
+            ser.flush()
+            
+            # readline() samo z siebie czeka na znak '\n', 
+            # więc sleep(0.1) można zostawić tylko jako mały bufor bezpieczeństwa
+            time.sleep(0.1) 
+            
+            raw_bytes = ser.readline()
+            config_str = raw_bytes.decode('utf-8', errors='ignore').strip()
+            print(f"[DEBUG] Otrzymana konfiguracja: '{config_str}'")
+            
+            # --- ROZPOCZYNAMY PARSOWANIE ---
+            # Sprawdzamy, czy ramka ma poprawny nagłówek i zakończenie
+            if config_str.startswith("CFG[") and config_str.endswith("];"):
+                # Wycinamy sam środek (bez 'CFG[' i '];')
+                content = config_str[4:-2] 
+                servos_data = content.split('|')
+                
+                # Upewniamy się, że przyszło dokładnie 6 serw
+                if len(servos_data) != 6:
+                    print(f"[BŁĄD] Ramka zawiera {len(servos_data)} serw zamiast 6!")
+                    return None
+                    
+                parsed_servos = []
+                
+                # Przechodzimy przez każde serwo i wyciągamy parametry
+                for index, servo_str in enumerate(servos_data):
+                    parts = servo_str.split(',')
+                    
+                    # Sprawdzamy, czy serwo ma dokładnie 4 parametry (offset, min, max, angle)
+                    if len(parts) == 4:
+                        servo_dict = {
+                            "id": index,
+                            "offset": int(parts[0]),
+                            "map_min": int(parts[1]),
+                            "map_max": int(parts[2]),
+                            "angle": float(parts[3])
+                        }
+                        parsed_servos.append(servo_dict)
+                    else:
+                        print(f"[BŁĄD] Uszkodzone dane w serwie {index}: {servo_str}")
+                        return None
+                        
+                print("[SUKCES] Konfiguracja rozpakowana pomyślnie!")
+                return parsed_servos # Zwracamy gotową listę obiektów!
+            else:
+                print("[BŁĄD] Ramka ma nieprawidłowy format (brak 'CFG[' lub '];')")
+                return None
+                
+        except Exception as e:
+            print(f"[BŁĄD PODCZAS ODCZYTU KONFIGURACJI]: {e}")
+            return None
+    else:
+        print("[BŁĄD] Port nie jest otwarty!")
+        return None

@@ -135,24 +135,33 @@ async def scan_com_ports():
 async def connect_robot(data: ConnectRequest):
     print(f"Rozpoczynam próbę połączenia na porcie {data.com_port}...")
     
-    if uart.uart_connect(data.com_port, data.baud_rate):
-    # if uart.uart_connect('/dev/ttyACM0', 115200):  #TODO: Replace with actual com_port and baud_rate from data
+    if uart.connect(data.com_port, data.baud_rate):
+    # if uart.connect('/dev/ttyACM0', 115200):  #TODO: Replace with actual com_port and baud_rate from data
         robot_state["connected"] = True
-        robot_state["com_port"] = data.com_port     #TODO: Replace with actual com_port used in uart_connect
-        robot_state["baud_rate"] = data.baud_rate   #TODO: Replace with actual com_port used in uart_connect
+        robot_state["com_port"] = data.com_port    
+        robot_state["baud_rate"] = data.baud_rate   
         print_message(
             "connect",
             {"com_port": data.com_port, "baud_rate": data.baud_rate},
         )
 
-        return {
-            "message": "Połączono z robotem.",
-            "connected": True,
-            "com_port": data.com_port,
-            "baud_rate": data.baud_rate,
-        }
+        robot_config = uart.get_config()
+        if robot_config is None:    
+            raise HTTPException(status_code=400, detail="Nie można odczytać konfiguracji robota. Sprawdź połączenie i konfigurację STM32.")
+        else:
+            return {
+                "message": "Połączono z robotem.",
+                "connected": True,
+                "com_port": data.com_port,
+                "baud_rate": data.baud_rate,
+                # TODO add info from servos_config, change to 6 values
+                "servos_offset": [servo["offset"] for servo in robot_config],
+                "servos_map_min": [servo["map_min"] for servo in robot_config],
+                "servos_map_max": [servo["map_max"] for servo in robot_config],
+                "servos_curr_angle": [servo["angle"] for servo in robot_config],
+            }
     else:
-        raise HTTPException(status_code=500,
+        raise HTTPException(status_code=400,
             detail="Nie można połączyć się z robotem. Sprawdź połączenie i konfigurację STM32.")
     
 

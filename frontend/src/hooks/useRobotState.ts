@@ -29,6 +29,8 @@ export type ServoConfigRow = {
     pwm: number;
 };
 
+const CONFIG_ROWS_STORAGE_KEY = "robot_config_rows";
+
 const createDefaultConfigRows = (): ServoConfigRow[] =>
     Array.from({ length: 6 }, () => ({
         offset: 0,
@@ -37,6 +39,40 @@ const createDefaultConfigRows = (): ServoConfigRow[] =>
         angle: 0,
         pwm: 0,
     }));
+
+const loadConfigRowsFromStorage = (): ServoConfigRow[] => {
+    try {
+        const raw = localStorage.getItem(CONFIG_ROWS_STORAGE_KEY);
+
+        if (!raw) {
+            return createDefaultConfigRows();
+        }
+
+        const parsed = JSON.parse(raw) as ServoConfigRow[];
+
+        if (!Array.isArray(parsed) || parsed.length !== 6) {
+            return createDefaultConfigRows();
+        }
+
+        return parsed.map((row) => ({
+            offset: Math.trunc(Number(row.offset ?? 0)),
+            mapMin: Number(row.mapMin ?? 0),
+            mapMax: Number(row.mapMax ?? 0),
+            angle: Number(row.angle ?? 0),
+            pwm: Number(row.pwm ?? 0),
+        }));
+    } catch {
+        return createDefaultConfigRows();
+    }
+};
+
+const saveConfigRowsToStorage = (rows: ServoConfigRow[]) => {
+    localStorage.setItem(CONFIG_ROWS_STORAGE_KEY, JSON.stringify(rows));
+};
+
+const clearConfigRowsFromStorage = () => {
+    localStorage.removeItem(CONFIG_ROWS_STORAGE_KEY);
+};
 
 export function useRobotState() {
     const [joints, setJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
@@ -49,7 +85,9 @@ export function useRobotState() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
     const [availableComPorts, setAvailableComPorts] = useState<string[]>([]);
-    const [configRows, setConfigRows] = useState<ServoConfigRow[]>(createDefaultConfigRows());
+    const [configRows, setConfigRows] = useState<ServoConfigRow[]>(() =>
+        loadConfigRowsFromStorage()
+    );
 
     const loadComPorts = useCallback(async () => {
         try {
@@ -79,6 +117,7 @@ export function useRobotState() {
         try {
             setError("");
             const state = await getRobotState();
+
             setJoints(state.joints);
             setCartesian(state.cartesian);
             setConnected(state.connected);
@@ -92,6 +131,11 @@ export function useRobotState() {
                 }
                 return prev;
             });
+
+            if (!state.connected) {
+                setConfigRows(createDefaultConfigRows());
+                clearConfigRowsFromStorage();
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Nie udało się pobrać stanu robota.");
         }
@@ -105,6 +149,12 @@ export function useRobotState() {
 
         initialize();
     }, [loadComPorts, loadState]);
+
+    useEffect(() => {
+        if (connected) {
+            saveConfigRowsToStorage(configRows);
+        }
+    }, [configRows, connected]);
 
     const withBusy = async (callback: () => Promise<void>) => {
         try {
@@ -122,6 +172,8 @@ export function useRobotState() {
         await withBusy(async () => {
             if (connected) {
                 await disconnectRobot();
+                setConfigRows(createDefaultConfigRows());
+                clearConfigRowsFromStorage();
                 await loadState();
                 await loadComPorts();
                 return;
@@ -133,15 +185,16 @@ export function useRobotState() {
 
             const response = await connectRobot(selectedCom, Number(baudRate));
 
-            setConfigRows((prev) =>
-                prev.map((row, index) => ({
-                    ...row,
-                    offset: Math.trunc(response.servos_offset?.[index] ?? 0),
-                    mapMin: response.servos_map_min?.[index] ?? 0,
-                    mapMax: response.servos_map_max?.[index] ?? 0,
-                    angle: response.servos_curr_angle?.[index] ?? 0,
-                }))
-            );
+            const nextConfigRows: ServoConfigRow[] = Array.from({ length: 6 }, (_, index) => ({
+                offset: Math.trunc(response.servos_offset?.[index] ?? 0),
+                mapMin: Number(response.servos_map_min?.[index] ?? 0),
+                mapMax: Number(response.servos_map_max?.[index] ?? 0),
+                angle: Number(response.servos_curr_angle?.[index] ?? 0),
+                pwm: 0,
+            }));
+
+            setConfigRows(nextConfigRows);
+            saveConfigRowsToStorage(nextConfigRows);
 
             await loadState();
             await loadComPorts();

@@ -11,33 +11,40 @@ type MainTabProps = {
 
 export function MainTab({ robot }: MainTabProps) {
     const {
-        joints,
         cartesian,
         connected,
         isStopPressed,
         mode,
+        motionType,
+        speed,
         selectedCom,
         baudRate,
         busy,
         error,
         availableComPorts,
+        configRows,
         setSelectedCom,
         setBaudRate,
         handleConnectToggle,
         handleStop,
         handleReset,
         handleToggleMode,
+        handleToggleMotionType,
+        handleIncreaseSpeed,
+        handleDecreaseSpeed,
         handleRecord,
         handleResume,
         handlePlay,
         handlePrevPosition,
         handlePause,
         handleNextPosition,
-        handleIncrementJoint,
-        handleDecrementJoint,
         handleIncrementCartesian,
         handleDecrementCartesian,
+        handleJointButtonPress,
+        handleJointButtonRelease,
     } = robot;
+
+    const currentJointValues = configRows.map((row) => row.angle);
 
     return (
         <div className="main-tab-layout">
@@ -48,6 +55,8 @@ export function MainTab({ robot }: MainTabProps) {
                 selectedCom={selectedCom}
                 baudRate={baudRate}
                 mode={mode}
+                motionType={motionType}
+                speed={speed}
                 busy={busy}
                 onSelectedComChange={setSelectedCom}
                 onBaudRateChange={setBaudRate}
@@ -55,6 +64,9 @@ export function MainTab({ robot }: MainTabProps) {
                 onStop={handleStop}
                 onReset={handleReset}
                 onToggleMode={handleToggleMode}
+                onToggleMotionType={handleToggleMotionType}
+                onIncreaseSpeed={handleIncreaseSpeed}
+                onDecreaseSpeed={handleDecreaseSpeed}
                 onRecord={handleRecord}
                 onResume={handleResume}
                 onPlay={handlePlay}
@@ -66,17 +78,19 @@ export function MainTab({ robot }: MainTabProps) {
             <div className="cards-grid">
                 <ValueCard
                     title="Current Joint values"
-                    values={joints}
-                    editable
+                    values={currentJointValues}
+                    editable={mode === "manual"}
                     disabled={!connected || busy}
-                    onIncrement={handleIncrementJoint}
-                    onDecrement={handleDecrementJoint}
+                    onIncrementPress={(index) => handleJointButtonPress(index, "+")}
+                    onIncrementRelease={(index) => handleJointButtonRelease(index, "+")}
+                    onDecrementPress={(index) => handleJointButtonPress(index, "-")}
+                    onDecrementRelease={(index) => handleJointButtonRelease(index, "-")}
                 />
 
                 <ValueCard
                     title="Current Cartesian values"
                     values={cartesian}
-                    editable
+                    editable={mode === "manual"}
                     disabled={!connected || busy}
                     onIncrement={handleIncrementCartesian}
                     onDecrement={handleDecrementCartesian}

@@ -168,3 +168,49 @@ export async function nextPosition() {
 
     return handleResponse(response);
 }
+
+export async function pressManualMove(
+    jointIndex: number,
+    direction: "+" | "-",
+    speed: number
+) {
+    const response = await fetch(`${API_BASE_URL}/robot/manual_move/press`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            joint_index: jointIndex,
+            direction,
+            speed,
+        }),
+    });
+
+    return handleResponse<{
+        move: string[];
+        error: boolean;
+        error_message: string;
+    }>(response);
+}
+
+export async function releaseManualMove(
+    jointIndex: number,
+    direction: "+" | "-"
+) {
+    const response = await fetch(`${API_BASE_URL}/robot/manual_move/release`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            joint_index: jointIndex,
+            direction,
+        }),
+    });
+
+    return handleResponse<{
+        move: string[];
+        error: boolean;
+        error_message: string;
+    }>(response);
+}

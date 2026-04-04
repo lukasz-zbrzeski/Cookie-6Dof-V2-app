@@ -10,14 +10,25 @@ export default function App() {
     const [activeTab, setActiveTab] = useState<TabKey>("tab1");
     const robot = useRobotState();
 
+    const canOpenPlots = robot.connected;
+    const canOpenConfig = robot.connected && robot.mode === "manual";
+
     useEffect(() => {
-        if (!robot.connected && activeTab !== "tab1") {
+        if (activeTab === "tab2" && !canOpenPlots) {
             setActiveTab("tab1");
         }
-    }, [robot.connected, activeTab]);
+
+        if (activeTab === "tab3" && !canOpenConfig) {
+            setActiveTab("tab1");
+        }
+    }, [activeTab, canOpenPlots, canOpenConfig]);
 
     const handleTabChange = (tab: TabKey) => {
-        if ((tab === "tab2" || tab === "tab3") && !robot.connected) {
+        if (tab === "tab2" && !canOpenPlots) {
+            return;
+        }
+
+        if (tab === "tab3" && !canOpenConfig) {
             return;
         }
 
@@ -36,14 +47,14 @@ export default function App() {
                 <TabButton
                     label="Plots"
                     active={activeTab === "tab2"}
-                    disabled={!robot.connected}
+                    disabled={!canOpenPlots}
                     onClick={() => handleTabChange("tab2")}
                 />
 
                 <TabButton
                     label="Config"
                     active={activeTab === "tab3"}
-                    disabled={!robot.connected}
+                    disabled={!canOpenConfig}
                     onClick={() => handleTabChange("tab3")}
                 />
             </header>

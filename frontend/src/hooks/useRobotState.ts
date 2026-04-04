@@ -17,9 +17,12 @@ import {
     scanComPorts,
     setRobotMode,
     stopRobot,
+    pressManualMove,
+    releaseManualMove,
 } from "../api/robotApi";
 
 export type RobotMode = "manual" | "auto";
+export type MotionType = "ptp" | "lin";
 
 export type ServoConfigRow = {
     offset: number;
@@ -30,6 +33,10 @@ export type ServoConfigRow = {
 };
 
 const CONFIG_ROWS_STORAGE_KEY = "robot_config_rows";
+const MOTION_TYPE_STORAGE_KEY = "robot_motion_type";
+const SPEED_STORAGE_KEY = "robot_speed";
+
+const SPEED_VALUES = [5, 10, 20, 50, 80, 100];
 
 const createDefaultConfigRows = (): ServoConfigRow[] =>
     Array.from({ length: 6 }, () => ({
@@ -74,12 +81,32 @@ const clearConfigRowsFromStorage = () => {
     localStorage.removeItem(CONFIG_ROWS_STORAGE_KEY);
 };
 
+const loadMotionTypeFromStorage = (): MotionType => {
+    const raw = localStorage.getItem(MOTION_TYPE_STORAGE_KEY);
+    return raw === "lin" ? "lin" : "ptp";
+};
+
+const saveMotionTypeToStorage = (motionType: MotionType) => {
+    localStorage.setItem(MOTION_TYPE_STORAGE_KEY, motionType);
+};
+
+const loadSpeedFromStorage = (): number => {
+    const raw = Number(localStorage.getItem(SPEED_STORAGE_KEY));
+    return SPEED_VALUES.includes(raw) ? raw : 5;
+};
+
+const saveSpeedToStorage = (speed: number) => {
+    localStorage.setItem(SPEED_STORAGE_KEY, String(speed));
+};
+
 export function useRobotState() {
     const [joints, setJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
     const [cartesian, setCartesian] = useState<number[]>([0, 0, 0, 0, 0, 0]);
     const [connected, setConnected] = useState(false);
     const [isStopPressed, setIsStopPressed] = useState(false);
     const [mode, setMode] = useState<RobotMode>("manual");
+    const [motionType, setMotionType] = useState<MotionType>(() => loadMotionTypeFromStorage());
+    const [speed, setSpeed] = useState<number>(() => loadSpeedFromStorage());
     const [selectedCom, setSelectedCom] = useState("");
     const [baudRate, setBaudRate] = useState("115200");
     const [busy, setBusy] = useState(false);
@@ -155,6 +182,14 @@ export function useRobotState() {
             saveConfigRowsToStorage(configRows);
         }
     }, [configRows, connected]);
+
+    useEffect(() => {
+        saveMotionTypeToStorage(motionType);
+    }, [motionType]);
+
+    useEffect(() => {
+        saveSpeedToStorage(speed);
+    }, [speed]);
 
     const withBusy = async (callback: () => Promise<void>) => {
         try {
@@ -244,6 +279,30 @@ export function useRobotState() {
         );
     };
 
+    const handleToggleMotionType = () => {
+        setMotionType((prev) => (prev === "ptp" ? "lin" : "ptp"));
+    };
+
+    const handleIncreaseSpeed = () => {
+        setSpeed((prev) => {
+            const currentIndex = SPEED_VALUES.indexOf(prev);
+            if (currentIndex === -1 || currentIndex === SPEED_VALUES.length - 1) {
+                return prev;
+            }
+            return SPEED_VALUES[currentIndex + 1];
+        });
+    };
+
+    const handleDecreaseSpeed = () => {
+        setSpeed((prev) => {
+            const currentIndex = SPEED_VALUES.indexOf(prev);
+            if (currentIndex <= 0) {
+                return prev;
+            }
+            return SPEED_VALUES[currentIndex - 1];
+        });
+    };
+
     const handleStop = async () => {
         await withBusy(async () => {
             await stopRobot();
@@ -270,6 +329,17 @@ export function useRobotState() {
         await withBusy(async () => {
             const response = await incrementJoint(index);
             setJoints(response.values);
+
+            setConfigRows((prev) =>
+                prev.map((row, rowIndex) =>
+                    rowIndex === index
+                        ? {
+                            ...row,
+                            angle: Number((row.angle + 0.1).toFixed(2)),
+                        }
+                        : row
+                )
+            );
         });
     };
 
@@ -277,6 +347,17 @@ export function useRobotState() {
         await withBusy(async () => {
             const response = await decrementJoint(index);
             setJoints(response.values);
+
+            setConfigRows((prev) =>
+                prev.map((row, rowIndex) =>
+                    rowIndex === index
+                        ? {
+                            ...row,
+                            angle: Number((row.angle - 0.1).toFixed(2)),
+                        }
+                        : row
+                )
+            );
         });
     };
 
@@ -330,12 +411,36 @@ export function useRobotState() {
         });
     };
 
+    const handleJointButtonPress = async (
+        index: number,
+        direction: "+" | "-"
+    ) => {
+        await withBusy(async () => {
+            const response = await pressManualMove(index, direction, speed);
+
+            if (response.error) {
+                throw new Error(response.error_message || "Manual move frame error.");
+            }
+        });
+    };
+
+    const handleJointButtonRelease = async (
+        index: number,
+        direction: "+" | "-"
+    ) => {
+        await withBusy(async () => {
+            await releaseManualMove(index, direction);
+        });
+    };
+
     return {
         joints,
         cartesian,
         connected,
         isStopPressed,
         mode,
+        motionType,
+        speed,
         selectedCom,
         baudRate,
         busy,
@@ -350,6 +455,9 @@ export function useRobotState() {
         handleStop,
         handleReset,
         handleToggleMode,
+        handleToggleMotionType,
+        handleIncreaseSpeed,
+        handleDecreaseSpeed,
         handleIncrementJoint,
         handleDecrementJoint,
         handleIncrementCartesian,
@@ -363,5 +471,7 @@ export function useRobotState() {
         updateConfigRowField,
         handleConfigPwmIncrement,
         handleConfigPwmDecrement,
+        handleJointButtonPress,
+        handleJointButtonRelease,
     };
 }

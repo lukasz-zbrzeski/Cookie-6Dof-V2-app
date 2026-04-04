@@ -7,6 +7,10 @@ type ValueCardProps = {
     disabled?: boolean;
     onIncrement?: (index: number) => void;
     onDecrement?: (index: number) => void;
+    onIncrementPress?: (index: number) => void;
+    onIncrementRelease?: (index: number) => void;
+    onDecrementPress?: (index: number) => void;
+    onDecrementRelease?: (index: number) => void;
 };
 
 export function ValueCard({
@@ -16,6 +20,10 @@ export function ValueCard({
                               disabled = false,
                               onIncrement,
                               onDecrement,
+                              onIncrementPress,
+                              onIncrementRelease,
+                              onDecrementPress,
+                              onDecrementRelease,
                           }: ValueCardProps) {
     return (
         <section className="value-card">
@@ -31,6 +39,10 @@ export function ValueCard({
                             disabled={disabled}
                             onIncrement={() => onIncrement?.(index)}
                             onDecrement={() => onDecrement?.(index)}
+                            onIncrementPress={() => onIncrementPress?.(index)}
+                            onIncrementRelease={() => onIncrementRelease?.(index)}
+                            onDecrementPress={() => onDecrementPress?.(index)}
+                            onDecrementRelease={() => onDecrementRelease?.(index)}
                         />
                     ))}
                 </div>

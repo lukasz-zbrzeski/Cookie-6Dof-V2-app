@@ -7,6 +7,8 @@ type LeftMainControlsProps = {
     selectedCom: string;
     baudRate: string;
     mode: "manual" | "auto";
+    motionType: "ptp" | "lin";
+    speed: number;
     busy?: boolean;
     onSelectedComChange: (value: string) => void;
     onBaudRateChange: (value: string) => void;
@@ -14,6 +16,9 @@ type LeftMainControlsProps = {
     onStop: () => void;
     onReset: () => void;
     onToggleMode: () => void;
+    onToggleMotionType: () => void;
+    onIncreaseSpeed: () => void;
+    onDecreaseSpeed: () => void;
     onRecord: () => void;
     onResume: () => void;
     onPlay: () => void;
@@ -29,6 +34,8 @@ export function LeftMainControls({
                                      selectedCom,
                                      baudRate,
                                      mode,
+                                     motionType,
+                                     speed,
                                      busy = false,
                                      onSelectedComChange,
                                      onBaudRateChange,
@@ -36,6 +43,9 @@ export function LeftMainControls({
                                      onStop,
                                      onReset,
                                      onToggleMode,
+                                     onToggleMotionType,
+                                     onIncreaseSpeed,
+                                     onDecreaseSpeed,
                                      onRecord,
                                      onResume,
                                      onPlay,
@@ -153,6 +163,39 @@ export function LeftMainControls({
                     onClick={onNextPosition}
                     disabled={controlsDisabled}
                 />
+            </div>
+
+            <div className="left-main-controls__bottom">
+                <button
+                    className="motion-type-button"
+                    type="button"
+                    onClick={onToggleMotionType}
+                    disabled={controlsDisabled}
+                >
+                    {motionType === "ptp" ? "PTP/LIN (PTP)" : "PTP/LIN (LIN)"}
+                </button>
+
+                <div className="speed-controls">
+                    <button
+                        className="speed-controls__button"
+                        type="button"
+                        onClick={onDecreaseSpeed}
+                        disabled={controlsDisabled}
+                    >
+                        vel-
+                    </button>
+
+                    <div className="speed-controls__value">{speed}%</div>
+
+                    <button
+                        className="speed-controls__button"
+                        type="button"
+                        onClick={onIncreaseSpeed}
+                        disabled={controlsDisabled}
+                    >
+                        vel+
+                    </button>
+                </div>
             </div>
         </aside>
     );

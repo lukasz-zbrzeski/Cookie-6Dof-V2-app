@@ -16,7 +16,8 @@ import psycopg
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-import uart as uart
+# import uart as uart
+from uart import uart
 
 # 8000 - default FastAPI port
 DATABASE_URL = os.getenv(
@@ -48,6 +49,7 @@ def round2(value: float) -> float:
 
 def print_message(command: str, payload: dict | None = None) -> None:
     print("UART COMMAND:", command, payload)
+
 
 def speed_to_move_step(speed: int) -> str:
     return str(speed * 0.05)
@@ -83,7 +85,9 @@ def rebuild_move_array(speed: int) -> None:
     if active_count > 1:
         robot_state["move"] = ["0.0", "0", "0", "0", "0", "0", "0"]
         manual_move_state["error"] = True
-        manual_move_state["error_message"] = "Cannot move more than one motor at the same time."
+        manual_move_state["error_message"] = (
+            "Cannot move more than one motor at the same time."
+        )
         return
 
     move[0] = speed_to_move_step(speed)
@@ -267,7 +271,9 @@ async def manual_move_press(data: ManualMovePressRequest):
         raise HTTPException(status_code=400, detail="Robot is not connected.")
 
     if robot_state["mode"] != "manual":
-        raise HTTPException(status_code=400, detail="Manual move is available only in manual mode.")
+        raise HTTPException(
+            status_code=400, detail="Manual move is available only in manual mode."
+        )
 
     if data.direction == "+":
         manual_move_state["pressed"][data.joint_index]["plus"] = True

@@ -1,3 +1,5 @@
+import { useRef } from "react";
+
 type ValueFieldProps = {
     value: number;
     editable?: boolean;
@@ -23,6 +25,71 @@ export function ValueField({
                                onDecrementPress,
                                onDecrementRelease,
                            }: ValueFieldProps) {
+    const incrementPressedRef = useRef(false);
+    const decrementPressedRef = useRef(false);
+
+    const handleIncrementMouseDown = () => {
+        if (disabled || !editable || !onIncrementPress) {
+            return;
+        }
+
+        incrementPressedRef.current = true;
+        onIncrementPress();
+    };
+
+    const handleIncrementMouseUp = () => {
+        if (!incrementPressedRef.current) {
+            return;
+        }
+
+        incrementPressedRef.current = false;
+        onIncrementRelease?.();
+    };
+
+    const handleIncrementMouseLeave = () => {
+        if (!incrementPressedRef.current) {
+            return;
+        }
+
+        incrementPressedRef.current = false;
+        onIncrementRelease?.();
+    };
+
+    const handleDecrementMouseDown = () => {
+        if (disabled || !editable || !onDecrementPress) {
+            return;
+        }
+
+        decrementPressedRef.current = true;
+        onDecrementPress();
+    };
+
+    const handleDecrementMouseUp = () => {
+        if (!decrementPressedRef.current) {
+            return;
+        }
+
+        decrementPressedRef.current = false;
+        onDecrementRelease?.();
+    };
+
+    const handleDecrementMouseLeave = () => {
+        if (!decrementPressedRef.current) {
+            return;
+        }
+
+        decrementPressedRef.current = false;
+        onDecrementRelease?.();
+    };
+
+    const handleIncrementClick = () => {
+        onIncrement?.();
+    };
+
+    const handleDecrementClick = () => {
+        onDecrement?.();
+    };
+
     return (
         <div className="value-field-row">
             <div className="value-field">{formatFloat(value)}</div>
@@ -35,12 +102,10 @@ export function ValueField({
                 <button
                     type="button"
                     className="value-field__button"
-                    onClick={onIncrement}
-                    onMouseDown={onIncrementPress}
-                    onMouseUp={onIncrementRelease}
-                    onMouseLeave={onIncrementRelease}
-                    onTouchStart={onIncrementPress}
-                    onTouchEnd={onIncrementRelease}
+                    onClick={handleIncrementClick}
+                    onMouseDown={handleIncrementMouseDown}
+                    onMouseUp={handleIncrementMouseUp}
+                    onMouseLeave={handleIncrementMouseLeave}
                     disabled={disabled || !editable}
                     tabIndex={editable ? 0 : -1}
                 >
@@ -50,12 +115,10 @@ export function ValueField({
                 <button
                     type="button"
                     className="value-field__button"
-                    onClick={onDecrement}
-                    onMouseDown={onDecrementPress}
-                    onMouseUp={onDecrementRelease}
-                    onMouseLeave={onDecrementRelease}
-                    onTouchStart={onDecrementPress}
-                    onTouchEnd={onDecrementRelease}
+                    onClick={handleDecrementClick}
+                    onMouseDown={handleDecrementMouseDown}
+                    onMouseUp={handleDecrementMouseUp}
+                    onMouseLeave={handleDecrementMouseLeave}
                     disabled={disabled || !editable}
                     tabIndex={editable ? 0 : -1}
                 >

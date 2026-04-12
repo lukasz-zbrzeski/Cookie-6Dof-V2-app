@@ -102,19 +102,6 @@ export function ValueField({
                 <button
                     type="button"
                     className="value-field__button"
-                    onClick={handleIncrementClick}
-                    onMouseDown={handleIncrementMouseDown}
-                    onMouseUp={handleIncrementMouseUp}
-                    onMouseLeave={handleIncrementMouseLeave}
-                    disabled={disabled || !editable}
-                    tabIndex={editable ? 0 : -1}
-                >
-                    +
-                </button>
-
-                <button
-                    type="button"
-                    className="value-field__button"
                     onClick={handleDecrementClick}
                     onMouseDown={handleDecrementMouseDown}
                     onMouseUp={handleDecrementMouseUp}
@@ -123,6 +110,19 @@ export function ValueField({
                     tabIndex={editable ? 0 : -1}
                 >
                     -
+                </button>
+
+                <button
+                    type="button"
+                    className="value-field__button"
+                    onClick={handleIncrementClick}
+                    onMouseDown={handleIncrementMouseDown}
+                    onMouseUp={handleIncrementMouseUp}
+                    onMouseLeave={handleIncrementMouseLeave}
+                    disabled={disabled || !editable}
+                    tabIndex={editable ? 0 : -1}
+                >
+                    +
                 </button>
             </div>
         </div>

@@ -11,7 +11,8 @@ export default function App() {
     const robot = useRobotState();
 
     const canOpenPlots = robot.connected;
-    const canOpenConfig = robot.connected && robot.mode === "manual";
+    const canOpenConfig =
+        robot.connected && robot.mode === "manual" && !robot.isStopPressed;
 
     useEffect(() => {
         if (activeTab === "tab2" && !canOpenPlots) {

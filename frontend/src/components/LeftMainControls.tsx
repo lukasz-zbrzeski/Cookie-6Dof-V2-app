@@ -10,6 +10,7 @@ type LeftMainControlsProps = {
     motionType: "ptp" | "lin";
     speed: number;
     busy?: boolean;
+    controlsDisabled?: boolean;
     onSelectedComChange: (value: string) => void;
     onBaudRateChange: (value: string) => void;
     onConnectToggle: () => void;
@@ -37,6 +38,7 @@ export function LeftMainControls({
                                      motionType,
                                      speed,
                                      busy = false,
+                                     controlsDisabled = false,
                                      onSelectedComChange,
                                      onBaudRateChange,
                                      onConnectToggle,
@@ -54,7 +56,7 @@ export function LeftMainControls({
                                      onNextPosition,
                                  }: LeftMainControlsProps) {
     const noDevicesAvailable = availableComPorts.length === 0;
-    const controlsDisabled = busy || !connected;
+    const uiDisabled = controlsDisabled || busy || !connected || isStopPressed;
 
     return (
         <aside className="left-main-controls">
@@ -102,7 +104,7 @@ export function LeftMainControls({
                         circle
                         pressed={isStopPressed}
                         onClick={onStop}
-                        disabled={controlsDisabled || isStopPressed}
+                        disabled={uiDisabled || isStopPressed}
                     />
                 </div>
 
@@ -110,7 +112,7 @@ export function LeftMainControls({
                     <button
                         className="reset-button"
                         onClick={onReset}
-                        disabled={controlsDisabled}
+                        disabled={busy || !connected}
                     >
                         Reset
                     </button>
@@ -119,7 +121,7 @@ export function LeftMainControls({
                         className="mode-button"
                         type="button"
                         onClick={onToggleMode}
-                        disabled={controlsDisabled}
+                        disabled={uiDisabled}
                     >
                         {mode === "manual" ? "Man/Auto (Manual)" : "Man/Auto (Auto)"}
                     </button>
@@ -131,37 +133,37 @@ export function LeftMainControls({
                     label="Record"
                     variant="ghost"
                     onClick={onRecord}
-                    disabled={controlsDisabled}
+                    disabled={uiDisabled}
                 />
                 <ActionButton
                     label="Resume"
                     variant="ghost"
                     onClick={onResume}
-                    disabled={controlsDisabled}
+                    disabled={uiDisabled}
                 />
                 <ActionButton
                     label="Play"
                     variant="ghost"
                     onClick={onPlay}
-                    disabled={controlsDisabled}
+                    disabled={uiDisabled}
                 />
                 <ActionButton
                     label="Prev position"
                     variant="ghost"
                     onClick={onPrevPosition}
-                    disabled={controlsDisabled}
+                    disabled={uiDisabled}
                 />
                 <ActionButton
                     label="Pause"
                     variant="ghost"
                     onClick={onPause}
-                    disabled={controlsDisabled}
+                    disabled={uiDisabled}
                 />
                 <ActionButton
                     label="Next position"
                     variant="ghost"
                     onClick={onNextPosition}
-                    disabled={controlsDisabled}
+                    disabled={uiDisabled}
                 />
             </div>
 
@@ -170,7 +172,7 @@ export function LeftMainControls({
                     className="motion-type-button"
                     type="button"
                     onClick={onToggleMotionType}
-                    disabled={controlsDisabled}
+                    disabled={uiDisabled}
                 >
                     {motionType === "ptp" ? "PTP/LIN (PTP)" : "PTP/LIN (LIN)"}
                 </button>
@@ -180,7 +182,7 @@ export function LeftMainControls({
                         className="speed-controls__button"
                         type="button"
                         onClick={onDecreaseSpeed}
-                        disabled={controlsDisabled}
+                        disabled={uiDisabled}
                     >
                         vel-
                     </button>
@@ -191,7 +193,7 @@ export function LeftMainControls({
                         className="speed-controls__button"
                         type="button"
                         onClick={onIncreaseSpeed}
-                        disabled={controlsDisabled}
+                        disabled={uiDisabled}
                     >
                         vel+
                     </button>

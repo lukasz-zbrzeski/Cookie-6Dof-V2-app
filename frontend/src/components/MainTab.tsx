@@ -45,6 +45,7 @@ export function MainTab({ robot }: MainTabProps) {
     } = robot;
 
     const currentJointValues = configRows.map((row) => row.angle);
+    const controlsDisabled = !connected || busy || isStopPressed;
 
     return (
         <div className="main-tab-layout">
@@ -58,6 +59,7 @@ export function MainTab({ robot }: MainTabProps) {
                 motionType={motionType}
                 speed={speed}
                 busy={busy}
+                controlsDisabled={controlsDisabled}
                 onSelectedComChange={setSelectedCom}
                 onBaudRateChange={setBaudRate}
                 onConnectToggle={handleConnectToggle}
@@ -80,7 +82,7 @@ export function MainTab({ robot }: MainTabProps) {
                     title="Current Joint values"
                     values={currentJointValues}
                     editable={mode === "manual"}
-                    disabled={!connected || busy}
+                    disabled={controlsDisabled}
                     onIncrementPress={(index) => handleJointButtonPress(index, "+")}
                     onIncrementRelease={(index) => handleJointButtonRelease(index, "+")}
                     onDecrementPress={(index) => handleJointButtonPress(index, "-")}
@@ -91,7 +93,7 @@ export function MainTab({ robot }: MainTabProps) {
                     title="Current Cartesian values"
                     values={cartesian}
                     editable={mode === "manual"}
-                    disabled={!connected || busy}
+                    disabled={controlsDisabled}
                     onIncrement={handleIncrementCartesian}
                     onDecrement={handleDecrementCartesian}
                 />

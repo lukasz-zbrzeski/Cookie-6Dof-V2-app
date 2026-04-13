@@ -5,6 +5,7 @@ import {
     decrementJoint,
     disconnectRobot,
     getRobotState,
+    getServosConfig,
     incrementCartesian,
     incrementJoint,
     nextPosition,
@@ -167,6 +168,23 @@ export function useRobotState() {
             setError(err instanceof Error ? err.message : "Nie udało się pobrać stanu robota.");
         }
     }, []);
+
+    const applyServoConfig = (payload: {
+        servos_offset: number[];
+        servos_map_min: number[];
+        servos_map_max: number[];
+        servos_curr_angle: number[];
+    }) => {
+        setConfigRows((prev) =>
+            prev.map((row, index) => ({
+                ...row,
+                offset: Math.trunc(payload.servos_offset?.[index] ?? row.offset),
+                mapMin: Number(payload.servos_map_min?.[index] ?? row.mapMin),
+                mapMax: Number(payload.servos_map_max?.[index] ?? row.mapMax),
+                angle: Number(payload.servos_curr_angle?.[index] ?? row.angle),
+            }))
+        );
+    };
 
     useEffect(() => {
         const initialize = async () => {
@@ -361,6 +379,11 @@ export function useRobotState() {
         });
     };
 
+    const refreshServosConfig = async () => {
+        const response = await getServosConfig();
+        applyServoConfig(response);
+    };
+
     const handleIncrementCartesian = async (index: number) => {
         await withBusy(async () => {
             const response = await incrementCartesian(index);
@@ -421,6 +444,8 @@ export function useRobotState() {
             if (response.error) {
                 throw new Error(response.error_message || "Manual move frame error.");
             }
+
+            await refreshServosConfig();
         });
     };
 
@@ -430,6 +455,7 @@ export function useRobotState() {
     ) => {
         await withBusy(async () => {
             await releaseManualMove(index, direction);
+            await refreshServosConfig();
         });
     };
 

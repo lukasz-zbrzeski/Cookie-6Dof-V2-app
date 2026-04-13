@@ -265,6 +265,26 @@ async def decrement_joint(index: int):
     return {"values": robot_state["joints"]}
 
 
+@app.get("/robot/servos-config")
+async def get_servos_config():
+    if not robot_state["connected"]:
+        raise HTTPException(status_code=400, detail="Robot is not connected.")
+
+    robot_config = uart.get_config()
+    if robot_config is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Nie można odczytać konfiguracji robota. Sprawdź połączenie i konfigurację STM32.",
+        )
+
+    return {
+        "servos_offset": [servo["offset"] for servo in robot_config],
+        "servos_map_min": [servo["map_min"] for servo in robot_config],
+        "servos_map_max": [servo["map_max"] for servo in robot_config],
+        "servos_curr_angle": [servo["angle"] for servo in robot_config],
+    }
+
+
 @app.post("/robot/manual_move/press")
 async def manual_move_press(data: ManualMovePressRequest):
     if not robot_state["connected"]:

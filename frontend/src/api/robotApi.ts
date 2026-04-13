@@ -24,6 +24,17 @@ export async function getRobotState() {
     }>(response);
 }
 
+export async function getServosConfig() {
+    const response = await fetch(`${API_BASE_URL}/robot/servos-config`);
+
+    return handleResponse<{
+        servos_offset: number[];
+        servos_map_min: number[];
+        servos_map_max: number[];
+        servos_curr_angle: number[];
+    }>(response);
+}
+
 export async function scanComPorts() {
     const response = await fetch(`${API_BASE_URL}/robot/scan_com_ports`);
     return handleResponse<{ com_ports: string[] }>(response);

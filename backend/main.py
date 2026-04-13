@@ -163,6 +163,9 @@ async def connect_robot(data: ConnectRequest):
                 detail="Nie można odczytać konfiguracji robota. Sprawdź połączenie i konfigurację STM32.",
             )
         else:
+
+            # TODO turn on uart_worker
+            uart.start_worker()
             return {
                 "message": "Połączono z robotem.",
                 "connected": True,

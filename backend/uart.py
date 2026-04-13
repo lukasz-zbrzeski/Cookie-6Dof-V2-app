@@ -76,7 +76,7 @@ class RobotUartController:
             self.is_connected = True
 
             # 3. Jeśli połączyliśmy się pomyślnie, uruchamiamy wątek w tle!
-            self._start_worker()
+            # self._start_worker()
 
             return True
 
@@ -182,7 +182,7 @@ class RobotUartController:
         with self.tx_queue.mutex:
             self.tx_queue.queue.clear()
 
-    def _start_worker(self):
+    def start_worker(self):
         """Uruchamia wątek pracownika w tle."""
         self._stop_thread = False
         # daemon=True sprawia, że wątek zamknie się sam, jeśli zamkniesz aplikację FastAPI
@@ -191,14 +191,15 @@ class RobotUartController:
 
     def _uart_worker(self):
         """Główna pętla wątku. Działa non-stop dopóki _stop_thread = False."""
-        print("[WORKER] Wątek tła uruchomiony. Gotowy do wysyłania (50Hz).")
+        print(
+            "[WORKER] Wątek tła uruchomiony. Gotowy do wysyłania i odbierania (50Hz)."
+        )
         LOOP_INTERVAL = 0.02  # 20 ms
 
         while not self._stop_thread:
             start_time = time.perf_counter()
 
-            # 1. Najpierw sprawdzamy kolejkę na wypadek innych, pilnych komend
-            # (np. awaryjny STOP, zmiana parametrów)
+            # 1. Sprawdzamy kolejkę (komendy priorytetowe z API)
             if not self.tx_queue.empty():
                 try:
                     command = self.tx_queue.get_nowait()
@@ -207,24 +208,40 @@ class RobotUartController:
                 except queue.Empty:
                     pass
 
-            # 2. CIĄGŁE WYSYŁANIE RUCHU MANUALNEGO (HEARTBEAT)
+            # 2. CIĄGŁE WYSYŁANIE RUCHU MANUALNEGO
             if robot_state["mode"] == "manual":
-                # Zamienia listę ["0.0", "0", "0", "0", "0", "0", "0"]
-                # na jednego stringa: "0.0,0,0,0,0,0,0"
                 move_payload = ",".join(robot_state["move"])
-
-                # Budujemy gotową ramkę dla STM32
                 move_command = f"MOVE_JOINTS[{move_payload}];\n"
-
                 try:
                     self.ser.write(move_command.encode("utf-8"))
                     self.ser.flush()
                 except Exception:
-                    # Celowo puste - jeśli jeden pakiet na 50 wypadnie (bo np. kabel drgnął),
-                    # nie chcemy wywalać całego wątku. Za 20ms pójdzie kolejny.
                     pass
 
-            # 3. Synchronizacja czasu - czekamy do pełnych 20ms
+            # 3. BŁYSKAWICZNY ODCZYT DANYCH Z STM32 (BEZ BLOKOWANIA!)
+            try:
+                # self.ser.in_waiting zwraca liczbę bajtów czekających w buforze.
+                # Jeśli nic nie przyszło, omijamy tę pętlę (nie tracimy czasu!).
+                while self.ser.in_waiting > 0:
+                    # Odbieramy linijkę i czyścimy ją ze znaków końca linii (\r\n)
+                    raw_line = self.ser.readline()
+                    line = raw_line.decode("utf-8", errors="ignore").strip()
+
+                    # Jeśli to nasza ramka z pozycjami
+                    if line.startswith("CURRENT_JOINTS[") and line.endswith("]"):
+                        # Wycinamy napis "CURRENT_JOINTS[" (15 znaków) i nawias "]" (-1)
+                        content = line[15:-1]
+                        parts = content.split(",")
+
+                        if len(parts) == 6:
+                            # Zamieniamy teksty na ułamki, zaokrąglamy i wgrywamy do stanu
+                            new_joints = [round(float(p), 2) for p in parts]
+                            robot_state["joints"] = new_joints
+            except Exception as e:
+                # Jeśli ramka przyszła w połowie ucięta, po prostu ją ignorujemy
+                pass
+
+            # 4. Synchronizacja czasu - czekamy do pełnych 20ms
             elapsed = time.perf_counter() - start_time
             sleep_time = LOOP_INTERVAL - elapsed
 

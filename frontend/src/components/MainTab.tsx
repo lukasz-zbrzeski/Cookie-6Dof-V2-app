@@ -11,6 +11,7 @@ type MainTabProps = {
 
 export function MainTab({ robot }: MainTabProps) {
     const {
+        displayedJoints,
         cartesian,
         connected,
         isStopPressed,
@@ -22,7 +23,6 @@ export function MainTab({ robot }: MainTabProps) {
         busy,
         error,
         availableComPorts,
-        configRows,
         setSelectedCom,
         setBaudRate,
         handleConnectToggle,
@@ -44,7 +44,6 @@ export function MainTab({ robot }: MainTabProps) {
         handleJointButtonRelease,
     } = robot;
 
-    const currentJointValues = configRows.map((row) => row.angle);
     const controlsDisabled = !connected || busy || isStopPressed;
 
     return (
@@ -80,9 +79,9 @@ export function MainTab({ robot }: MainTabProps) {
             <div className="cards-grid">
                 <ValueCard
                     title="Current Joint values"
-                    values={currentJointValues}
+                    values={displayedJoints}
                     editable={mode === "manual"}
-                    disabled={controlsDisabled}
+                    disabled={!connected || busy}
                     onIncrementPress={(index) => handleJointButtonPress(index, "+")}
                     onIncrementRelease={(index) => handleJointButtonRelease(index, "+")}
                     onDecrementPress={(index) => handleJointButtonPress(index, "-")}

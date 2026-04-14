@@ -100,6 +100,11 @@ export async function setRobotMode(mode: Mode) {
     return handleResponse(response);
 }
 
+export async function getJoints() {
+    const response = await fetch(`${API_BASE_URL}/robot/joints`);
+    return handleResponse<{ values: number[] }>(response);
+}
+
 export async function incrementJoint(index: number) {
     const response = await fetch(`${API_BASE_URL}/robot/joints/${index}/increment`, {
         method: "PATCH",

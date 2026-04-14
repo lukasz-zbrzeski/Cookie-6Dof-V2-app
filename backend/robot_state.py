@@ -49,7 +49,7 @@ class RobotStateResponse(BaseModel):
 
 
 robot_state = {
-    "connected": True,
+    "connected": False,
     "stopped": False,
     "mode": "manual",
     "com_port": None,

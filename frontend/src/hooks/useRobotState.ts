@@ -4,8 +4,8 @@ import {
     decrementCartesian,
     decrementJoint,
     disconnectRobot,
+    getJoints,
     getRobotState,
-    getServosConfig,
     incrementCartesian,
     incrementJoint,
     nextPosition,
@@ -102,6 +102,7 @@ const saveSpeedToStorage = (speed: number) => {
 
 export function useRobotState() {
     const [joints, setJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
+    const [displayedJoints, setDisplayedJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
     const [cartesian, setCartesian] = useState<number[]>([0, 0, 0, 0, 0, 0]);
     const [connected, setConnected] = useState(false);
     const [isStopPressed, setIsStopPressed] = useState(false);
@@ -169,23 +170,6 @@ export function useRobotState() {
         }
     }, []);
 
-    const applyServoConfig = (payload: {
-        servos_offset: number[];
-        servos_map_min: number[];
-        servos_map_max: number[];
-        servos_curr_angle: number[];
-    }) => {
-        setConfigRows((prev) =>
-            prev.map((row, index) => ({
-                ...row,
-                offset: Math.trunc(payload.servos_offset?.[index] ?? row.offset),
-                mapMin: Number(payload.servos_map_min?.[index] ?? row.mapMin),
-                mapMax: Number(payload.servos_map_max?.[index] ?? row.mapMax),
-                angle: Number(payload.servos_curr_angle?.[index] ?? row.angle),
-            }))
-        );
-    };
-
     useEffect(() => {
         const initialize = async () => {
             await loadComPorts();
@@ -227,6 +211,7 @@ export function useRobotState() {
                 await disconnectRobot();
                 setConfigRows(createDefaultConfigRows());
                 clearConfigRowsFromStorage();
+                setDisplayedJoints([0, 0, 0, 0, 0, 0]);
                 await loadState();
                 await loadComPorts();
                 return;
@@ -248,6 +233,9 @@ export function useRobotState() {
 
             setConfigRows(nextConfigRows);
             saveConfigRowsToStorage(nextConfigRows);
+
+            const connectedAngles = response.servos_curr_angle.map((value) => Number(value ?? 0));
+            setDisplayedJoints(connectedAngles);
 
             await loadState();
             await loadComPorts();
@@ -379,11 +367,6 @@ export function useRobotState() {
         });
     };
 
-    const refreshServosConfig = async () => {
-        const response = await getServosConfig();
-        applyServoConfig(response);
-    };
-
     const handleIncrementCartesian = async (index: number) => {
         await withBusy(async () => {
             const response = await incrementCartesian(index);
@@ -444,8 +427,6 @@ export function useRobotState() {
             if (response.error) {
                 throw new Error(response.error_message || "Manual move frame error.");
             }
-
-            await refreshServosConfig();
         });
     };
 
@@ -455,12 +436,16 @@ export function useRobotState() {
     ) => {
         await withBusy(async () => {
             await releaseManualMove(index, direction);
-            await refreshServosConfig();
+
+            const jointsResponse = await getJoints();
+            setJoints(jointsResponse.values);
+            setDisplayedJoints(jointsResponse.values);
         });
     };
 
     return {
         joints,
+        displayedJoints,
         cartesian,
         connected,
         isStopPressed,

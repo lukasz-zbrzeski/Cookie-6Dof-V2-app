@@ -3,3 +3,8 @@ uvicorn[standard]
 psycopg[binary]
 pyserial
 black==24.3.0
+
+numpy==1.26.4
+spatialmath-python==1.1.9
+roboticstoolbox-python==1.1.0
+scipy==1.11.4

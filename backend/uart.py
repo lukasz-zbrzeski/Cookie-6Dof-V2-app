@@ -5,6 +5,7 @@ import time
 import threading
 import queue
 from robot_state import robot_state
+from robot_kinematics import Robot6Dof
 
 
 class RobotUartController:
@@ -153,6 +154,11 @@ class RobotUartController:
                             return None
 
                     print("[SUKCES] Konfiguracja rozpakowana pomyślnie!")
+                    # TODO add forward kinematics init here
+                    curr_pose = Robot6Dof.get_position(
+                        [[servo["angle"] for servo in parsed_servos]]
+                    )
+                    robot_state["cartesian"] = curr_pose
                     return parsed_servos  # Zwracamy gotową listę obiektów!
                 else:
                     print("[BŁĄD] Ramka ma nieprawidłowy format (brak 'CFG[' lub '];')")

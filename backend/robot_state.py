@@ -54,7 +54,7 @@ robot_state = {
     "mode": "manual",
     "com_port": None,
     "baud_rate": None,
-    "joints": [1.15, 1.52, 1.89, 2.26, 2.63, 3.00],
+    "joints": [1.15, 1.52, 1.89, 2.26, 2.63, 3.00],  # TODO add gripper state here
     "cartesian": [2.05, 2.42, 2.79, 3.16, 3.53, 3.90],
     "move": ["0.0", "0", "0", "0", "0", "0", "0"],
 }

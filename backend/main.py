@@ -1,6 +1,5 @@
 import os
 
-
 from robot_state import (
     ConnectRequest,
     JointsUpdateRequest,
@@ -8,6 +7,8 @@ from robot_state import (
     ModeRequest,
     ManualMovePressRequest,
     ManualMoveReleaseRequest,
+    ManualCartesianMovePressRequest,
+    ManualCartesianMoveReleaseRequest,
     RobotStateResponse,
     robot_state,
     manual_move_state,
@@ -55,21 +56,27 @@ def speed_to_move_step(speed: int) -> str:
     return str(speed * 0.05)
 
 
-def reset_move_state() -> None:
-    robot_state["move"] = ["0.0", "0", "0", "0", "0", "0", "0"]
-    manual_move_state["error"] = False
-    manual_move_state["error_message"] = ""
+def reset_joint_move_state() -> None:
+    robot_state["move_joint"] = ["0.0", "0", "0", "0", "0", "0", "0"]
+    manual_move_state["error_joint"] = False
+    manual_move_state["error_joint_message"] = ""
 
 
-def rebuild_move_array(speed: int) -> None:
+def reset_cartesian_move_state() -> None:
+    robot_state["move_cartesian"] = ["0.0", "0", "0", "0", "0", "0", "0"]
+    manual_move_state["error_cartesian"] = False
+    manual_move_state["error_cartesian_message"] = ""
+
+
+def rebuild_joint_move_array(speed: int) -> None:
     if robot_state["mode"] != "manual":
-        reset_move_state()
+        reset_joint_move_state()
         return
 
     active_count = 0
     move = ["0.0", "0", "0", "0", "0", "0", "0"]
 
-    for joint_index, pressed in enumerate(manual_move_state["pressed"]):
+    for joint_index, pressed in enumerate(manual_move_state["pressed_joint"]):
         if pressed["plus"]:
             active_count += 1
             move[joint_index + 1] = "+"
@@ -79,21 +86,56 @@ def rebuild_move_array(speed: int) -> None:
             move[joint_index + 1] = "-"
 
     if active_count == 0:
-        reset_move_state()
+        reset_joint_move_state()
         return
 
     if active_count > 1:
-        robot_state["move"] = ["0.0", "0", "0", "0", "0", "0", "0"]
-        manual_move_state["error"] = True
-        manual_move_state["error_message"] = (
-            "Cannot move more than one motor at the same time."
+        robot_state["move_joint"] = ["0.0", "0", "0", "0", "0", "0", "0"]
+        manual_move_state["error_joint"] = True
+        manual_move_state["error_joint_message"] = (
+            "Cannot move more than one joint axis at the same time."
         )
         return
 
     move[0] = speed_to_move_step(speed)
-    robot_state["move"] = move
-    manual_move_state["error"] = False
-    manual_move_state["error_message"] = ""
+    robot_state["move_joint"] = move
+    manual_move_state["error_joint"] = False
+    manual_move_state["error_joint_message"] = ""
+
+
+def rebuild_cartesian_move_array(speed: int) -> None:
+    if robot_state["mode"] != "manual":
+        reset_cartesian_move_state()
+        return
+
+    active_count = 0
+    move = ["0.0", "0", "0", "0", "0", "0", "0"]
+
+    for cartesian_index, pressed in enumerate(manual_move_state["pressed_cartesian"]):
+        if pressed["plus"]:
+            active_count += 1
+            move[cartesian_index + 1] = "+"
+
+        if pressed["minus"]:
+            active_count += 1
+            move[cartesian_index + 1] = "-"
+
+    if active_count == 0:
+        reset_cartesian_move_state()
+        return
+
+    if active_count > 1:
+        robot_state["move_cartesian"] = ["0.0", "0", "0", "0", "0", "0", "0"]
+        manual_move_state["error_cartesian"] = True
+        manual_move_state["error_cartesian_message"] = (
+            "Cannot move more than one cartesian axis at the same time."
+        )
+        return
+
+    move[0] = speed_to_move_step(speed)
+    robot_state["move_cartesian"] = move
+    manual_move_state["error_cartesian"] = False
+    manual_move_state["error_cartesian_message"] = ""
 
 
 def save_current_joints_to_db(joints: list[float]) -> int:
@@ -191,11 +233,16 @@ async def disconnect_robot():
     robot_state["com_port"] = None
     robot_state["baud_rate"] = None
 
-    for pressed in manual_move_state["pressed"]:
+    for pressed in manual_move_state["pressed_joint"]:
         pressed["plus"] = False
         pressed["minus"] = False
 
-    reset_move_state()
+    for pressed in manual_move_state["pressed_cartesian"]:
+        pressed["plus"] = False
+        pressed["minus"] = False
+
+    reset_joint_move_state()
+    reset_cartesian_move_state()
 
     print_message("disconnect")
 
@@ -224,10 +271,16 @@ async def set_mode(data: ModeRequest):
     robot_state["mode"] = data.mode
 
     if data.mode != "manual":
-        for pressed in manual_move_state["pressed"]:
+        for pressed in manual_move_state["pressed_joint"]:
             pressed["plus"] = False
             pressed["minus"] = False
-        reset_move_state()
+
+        for pressed in manual_move_state["pressed_cartesian"]:
+            pressed["plus"] = False
+            pressed["minus"] = False
+
+        reset_joint_move_state()
+        reset_cartesian_move_state()
 
     print_message("mode", {"mode": data.mode})
     return {"message": "Tryb zmieniony.", "mode": data.mode}
@@ -299,11 +352,11 @@ async def manual_move_press(data: ManualMovePressRequest):
         )
 
     if data.direction == "+":
-        manual_move_state["pressed"][data.joint_index]["plus"] = True
+        manual_move_state["pressed_joint"][data.joint_index]["plus"] = True
     else:
-        manual_move_state["pressed"][data.joint_index]["minus"] = True
+        manual_move_state["pressed_joint"][data.joint_index]["minus"] = True
 
-    rebuild_move_array(data.speed)
+    rebuild_joint_move_array(data.speed)
 
     print_message(
         "manual_move_press",
@@ -311,50 +364,50 @@ async def manual_move_press(data: ManualMovePressRequest):
             "joint_index": data.joint_index,
             "direction": data.direction,
             "speed": data.speed,
-            "move": robot_state["move"],
-            "error": manual_move_state["error"],
+            "move_joint": robot_state["move_joint"],
+            "error": manual_move_state["error_joint"],
         },
     )
 
     return {
-        "move": robot_state["move"],
-        "error": manual_move_state["error"],
-        "error_message": manual_move_state["error_message"],
+        "move_joint": robot_state["move_joint"],
+        "error": manual_move_state["error_joint"],
+        "error_message": manual_move_state["error_joint_message"],
     }
 
 
 @app.post("/robot/manual_move/release")
 async def manual_move_release(data: ManualMoveReleaseRequest):
     if data.direction == "+":
-        manual_move_state["pressed"][data.joint_index]["plus"] = False
+        manual_move_state["pressed_joint"][data.joint_index]["plus"] = False
     else:
-        manual_move_state["pressed"][data.joint_index]["minus"] = False
+        manual_move_state["pressed_joint"][data.joint_index]["minus"] = False
 
-    rebuild_move_array(0)
+    rebuild_joint_move_array(0)
 
     print_message(
         "manual_move_release",
         {
             "joint_index": data.joint_index,
             "direction": data.direction,
-            "move": robot_state["move"],
-            "error": manual_move_state["error"],
+            "move_joint": robot_state["move_joint"],
+            "error": manual_move_state["error_joint"],
         },
     )
 
     return {
-        "move": robot_state["move"],
-        "error": manual_move_state["error"],
-        "error_message": manual_move_state["error_message"],
+        "move_joint": robot_state["move_joint"],
+        "error": manual_move_state["error_joint"],
+        "error_message": manual_move_state["error_joint_message"],
     }
 
 
 @app.get("/robot/manual_move/state")
 async def manual_move_get_state():
     return {
-        "move": robot_state["move"],
-        "error": manual_move_state["error"],
-        "error_message": manual_move_state["error_message"],
+        "move_joint": robot_state["move_joint"],
+        "error": manual_move_state["error_joint"],
+        "error_message": manual_move_state["error_joint_message"],
     }
 
 
@@ -393,6 +446,77 @@ async def decrement_cartesian(index: int):
         {"index": index, "value": robot_state["cartesian"][index]},
     )
     return {"values": robot_state["cartesian"]}
+
+
+@app.post("/robot/manual_cartesian_move/press")
+async def manual_cartesian_move_press(data: ManualCartesianMovePressRequest):
+    if not robot_state["connected"]:
+        raise HTTPException(status_code=400, detail="Robot is not connected.")
+
+    if robot_state["mode"] != "manual":
+        raise HTTPException(
+            status_code=400,
+            detail="Manual cartesian move is available only in manual mode.",
+        )
+
+    if data.direction == "+":
+        manual_move_state["pressed_cartesian"][data.cartesian_index]["plus"] = True
+    else:
+        manual_move_state["pressed_cartesian"][data.cartesian_index]["minus"] = True
+
+    rebuild_cartesian_move_array(data.speed)
+
+    print_message(
+        "manual_cartesian_move_press",
+        {
+            "cartesian_index": data.cartesian_index,
+            "direction": data.direction,
+            "speed": data.speed,
+            "move_cartesian": robot_state["move_cartesian"],
+            "error": manual_move_state["error_cartesian"],
+        },
+    )
+
+    return {
+        "move_cartesian": robot_state["move_cartesian"],
+        "error": manual_move_state["error_cartesian"],
+        "error_message": manual_move_state["error_cartesian_message"],
+    }
+
+
+@app.post("/robot/manual_cartesian_move/release")
+async def manual_cartesian_move_release(data: ManualCartesianMoveReleaseRequest):
+    if data.direction == "+":
+        manual_move_state["pressed_cartesian"][data.cartesian_index]["plus"] = False
+    else:
+        manual_move_state["pressed_cartesian"][data.cartesian_index]["minus"] = False
+
+    rebuild_cartesian_move_array(0)
+
+    print_message(
+        "manual_cartesian_move_release",
+        {
+            "cartesian_index": data.cartesian_index,
+            "direction": data.direction,
+            "move_cartesian": robot_state["move_cartesian"],
+            "error": manual_move_state["error_cartesian"],
+        },
+    )
+
+    return {
+        "move_cartesian": robot_state["move_cartesian"],
+        "error": manual_move_state["error_cartesian"],
+        "error_message": manual_move_state["error_cartesian_message"],
+    }
+
+
+@app.get("/robot/manual_cartesian_move/state")
+async def manual_cartesian_move_get_state():
+    return {
+        "move_cartesian": robot_state["move_cartesian"],
+        "error": manual_move_state["error_cartesian"],
+        "error_message": manual_move_state["error_cartesian_message"],
+    }
 
 
 @app.post("/robot/record")

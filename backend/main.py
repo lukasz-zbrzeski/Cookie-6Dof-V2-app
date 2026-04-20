@@ -132,7 +132,7 @@ def rebuild_cartesian_move_array(speed: int) -> None:
         )
         return
 
-    move[0] = speed_to_move_step(speed)
+    move[0] = str(speed / 100)
     robot_state["move_cartesian"] = move
     manual_move_state["error_cartesian"] = False
     manual_move_state["error_cartesian_message"] = ""

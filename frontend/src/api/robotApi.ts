@@ -121,6 +121,11 @@ export async function decrementJoint(index: number) {
     return handleResponse<{ values: number[] }>(response);
 }
 
+export async function getCartesian() {
+    const response = await fetch(`${API_BASE_URL}/robot/cartesian`);
+    return handleResponse<{ values: number[] }>(response);
+}
+
 export async function incrementCartesian(index: number) {
     const response = await fetch(`${API_BASE_URL}/robot/cartesian/${index}/increment`, {
         method: "PATCH",
@@ -226,6 +231,52 @@ export async function releaseManualMove(
 
     return handleResponse<{
         move: string[];
+        error: boolean;
+        error_message: string;
+    }>(response);
+}
+
+export async function pressManualCartesianMove(
+    cartesianIndex: number,
+    direction: "+" | "-",
+    speed: number
+) {
+    const response = await fetch(`${API_BASE_URL}/robot/manual_cartesian_move/press`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            cartesian_index: cartesianIndex,
+            direction,
+            speed,
+        }),
+    });
+
+    return handleResponse<{
+        move_cartesian: string[];
+        error: boolean;
+        error_message: string;
+    }>(response);
+}
+
+export async function releaseManualCartesianMove(
+    cartesianIndex: number,
+    direction: "+" | "-"
+) {
+    const response = await fetch(`${API_BASE_URL}/robot/manual_cartesian_move/release`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            cartesian_index: cartesianIndex,
+            direction,
+        }),
+    });
+
+    return handleResponse<{
+        move_cartesian: string[];
         error: boolean;
         error_message: string;
     }>(response);

@@ -38,8 +38,8 @@ export function MainTab({ robot }: MainTabProps) {
         handlePrevPosition,
         handlePause,
         handleNextPosition,
-        handleIncrementCartesian,
-        handleDecrementCartesian,
+        handleCartesianButtonPress,
+        handleCartesianButtonRelease,
         handleJointButtonPress,
         handleJointButtonRelease,
     } = robot;
@@ -93,8 +93,10 @@ export function MainTab({ robot }: MainTabProps) {
                     values={cartesian}
                     editable={mode === "manual"}
                     disabled={controlsDisabled}
-                    onIncrement={handleIncrementCartesian}
-                    onDecrement={handleDecrementCartesian}
+                    onIncrementPress={(index) => handleCartesianButtonPress(index, "+")}
+                    onIncrementRelease={(index) => handleCartesianButtonRelease(index, "+")}
+                    onDecrementPress={(index) => handleCartesianButtonPress(index, "-")}
+                    onDecrementRelease={(index) => handleCartesianButtonRelease(index, "-")}
                 />
 
                 <ValueCard title="Ramka 3" values={fallbackCard3} />

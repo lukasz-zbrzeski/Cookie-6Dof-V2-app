@@ -156,7 +156,7 @@ class RobotUartController:
                     print("[SUKCES] Konfiguracja rozpakowana pomyślnie!")
                     # TODO add forward kinematics init here
                     curr_pose = Robot6Dof.get_position(
-                        [[servo["angle"] for servo in parsed_servos]]
+                        [servo["angle"] for servo in parsed_servos]
                     )
                     robot_state["cartesian"] = curr_pose
                     return parsed_servos  # Zwracamy gotową listę obiektów!
@@ -216,7 +216,7 @@ class RobotUartController:
 
             # 2. CIĄGŁE WYSYŁANIE RUCHU MANUALNEGO
             if robot_state["mode"] == "manual":
-                move_payload = ",".join(robot_state["move"])
+                move_payload = ",".join(robot_state["move_joint"])
                 move_command = f"MOVE_JOINTS[{move_payload}];\n"
                 try:
                     self.ser.write(move_command.encode("utf-8"))

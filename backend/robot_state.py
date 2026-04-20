@@ -38,6 +38,17 @@ class ManualMoveReleaseRequest(BaseModel):
     direction: Literal["+", "-"]
 
 
+class ManualCartesianMovePressRequest(BaseModel):
+    cartesian_index: int = Field(..., ge=0, le=5)
+    direction: Literal["+", "-"]
+    speed: int
+
+
+class ManualCartesianMoveReleaseRequest(BaseModel):
+    cartesian_index: int = Field(..., ge=0, le=5)
+    direction: Literal["+", "-"]
+
+
 class RobotStateResponse(BaseModel):
     connected: bool
     stopped: bool
@@ -54,14 +65,14 @@ robot_state = {
     "mode": "manual",
     "com_port": None,
     "baud_rate": None,
-    "joints": [1.15, 1.52, 1.89, 2.26, 2.63, 3.00],  # TODO add gripper state here
+    "joints": [1.15, 1.52, 1.89, 2.26, 2.63, 3.00],
     "cartesian": [2.05, 2.42, 2.79, 3.16, 3.53, 3.90],
-    "move": ["0.0", "0", "0", "0", "0", "0", "0"],
-    # TODO add cartesian move state here
+    "move_joint": ["0.0", "0", "0", "0", "0", "0", "0"],
+    "move_cartesian": ["0.0", "0", "0", "0", "0", "0", "0"],
 }
 
 manual_move_state = {
-    "pressed": [
+    "pressed_joint": [
         {"plus": False, "minus": False},
         {"plus": False, "minus": False},
         {"plus": False, "minus": False},
@@ -69,6 +80,16 @@ manual_move_state = {
         {"plus": False, "minus": False},
         {"plus": False, "minus": False},
     ],
-    "error": False,
-    "error_message": "",
+    "pressed_cartesian": [
+        {"plus": False, "minus": False},
+        {"plus": False, "minus": False},
+        {"plus": False, "minus": False},
+        {"plus": False, "minus": False},
+        {"plus": False, "minus": False},
+        {"plus": False, "minus": False},
+    ],
+    "error_joint": False,
+    "error_joint_message": "",
+    "error_cartesian": False,
+    "error_cartesian_message": "",
 }

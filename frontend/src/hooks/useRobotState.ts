@@ -4,6 +4,7 @@ import {
     decrementCartesian,
     decrementJoint,
     disconnectRobot,
+    getCartesian,
     getJoints,
     getRobotState,
     incrementCartesian,
@@ -20,6 +21,8 @@ import {
     stopRobot,
     pressManualMove,
     releaseManualMove,
+    pressManualCartesianMove,
+    releaseManualCartesianMove,
 } from "../api/robotApi";
 
 export type RobotMode = "manual" | "auto";
@@ -203,6 +206,17 @@ export function useRobotState() {
         } finally {
             setBusy(false);
         }
+    };
+
+    const refreshRobotValues = async () => {
+        const [jointsResponse, cartesianResponse] = await Promise.all([
+            getJoints(),
+            getCartesian(),
+        ]);
+
+        setJoints(jointsResponse.values);
+        setDisplayedJoints(jointsResponse.values);
+        setCartesian(cartesianResponse.values);
     };
 
     const handleConnectToggle = async () => {
@@ -436,10 +450,30 @@ export function useRobotState() {
     ) => {
         await withBusy(async () => {
             await releaseManualMove(index, direction);
+            await refreshRobotValues();
+        });
+    };
 
-            const jointsResponse = await getJoints();
-            setJoints(jointsResponse.values);
-            setDisplayedJoints(jointsResponse.values);
+    const handleCartesianButtonPress = async (
+        index: number,
+        direction: "+" | "-"
+    ) => {
+        await withBusy(async () => {
+            const response = await pressManualCartesianMove(index, direction, speed);
+
+            if (response.error) {
+                throw new Error(response.error_message || "Manual cartesian move frame error.");
+            }
+        });
+    };
+
+    const handleCartesianButtonRelease = async (
+        index: number,
+        direction: "+" | "-"
+    ) => {
+        await withBusy(async () => {
+            await releaseManualCartesianMove(index, direction);
+            await refreshRobotValues();
         });
     };
 
@@ -484,5 +518,7 @@ export function useRobotState() {
         handleConfigPwmDecrement,
         handleJointButtonPress,
         handleJointButtonRelease,
+        handleCartesianButtonPress,
+        handleCartesianButtonRelease,
     };
 }

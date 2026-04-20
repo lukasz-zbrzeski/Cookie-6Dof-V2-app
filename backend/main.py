@@ -56,9 +56,9 @@ def speed_to_move_step(speed: int) -> str:
 
 
 def reset_move_state() -> None:
-    robot_state["move"] = ["0.0", "0", "0", "0", "0", "0", "0"]
-    manual_move_state["error"] = False
-    manual_move_state["error_message"] = ""
+    robot_state["move_joint"] = ["0.0", "0", "0", "0", "0", "0", "0"]
+    manual_move_state["error_joint"] = False
+    manual_move_state["error_joint_message"] = ""
 
 
 def rebuild_move_array(speed: int) -> None:
@@ -69,7 +69,8 @@ def rebuild_move_array(speed: int) -> None:
     active_count = 0
     move = ["0.0", "0", "0", "0", "0", "0", "0"]
 
-    for joint_index, pressed in enumerate(manual_move_state["pressed"]):
+    # ZMIANA: używamy "pressed_joint"
+    for joint_index, pressed in enumerate(manual_move_state["pressed_joint"]):
         if pressed["plus"]:
             active_count += 1
             move[joint_index + 1] = "+"
@@ -83,17 +84,17 @@ def rebuild_move_array(speed: int) -> None:
         return
 
     if active_count > 1:
-        robot_state["move"] = ["0.0", "0", "0", "0", "0", "0", "0"]
-        manual_move_state["error"] = True
-        manual_move_state["error_message"] = (
+        robot_state["move_joint"] = ["0.0", "0", "0", "0", "0", "0", "0"]
+        manual_move_state["error_joint"] = True
+        manual_move_state["error_joint_message"] = (
             "Cannot move more than one motor at the same time."
         )
         return
 
     move[0] = speed_to_move_step(speed)
-    robot_state["move"] = move
-    manual_move_state["error"] = False
-    manual_move_state["error_message"] = ""
+    robot_state["move_joint"] = move
+    manual_move_state["error_joint"] = False
+    manual_move_state["error_joint_message"] = ""
 
 
 def save_current_joints_to_db(joints: list[float]) -> int:
@@ -191,7 +192,8 @@ async def disconnect_robot():
     robot_state["com_port"] = None
     robot_state["baud_rate"] = None
 
-    for pressed in manual_move_state["pressed"]:
+    # ZMIANA: używamy "pressed_joint"
+    for pressed in manual_move_state["pressed_joint"]:
         pressed["plus"] = False
         pressed["minus"] = False
 
@@ -224,7 +226,7 @@ async def set_mode(data: ModeRequest):
     robot_state["mode"] = data.mode
 
     if data.mode != "manual":
-        for pressed in manual_move_state["pressed"]:
+        for pressed in manual_move_state["pressed_joint"]:
             pressed["plus"] = False
             pressed["minus"] = False
         reset_move_state()
@@ -298,10 +300,11 @@ async def manual_move_press(data: ManualMovePressRequest):
             status_code=400, detail="Manual move is available only in manual mode."
         )
 
+    # ZMIANA: używamy "pressed_joint"
     if data.direction == "+":
-        manual_move_state["pressed"][data.joint_index]["plus"] = True
+        manual_move_state["pressed_joint"][data.joint_index]["plus"] = True
     else:
-        manual_move_state["pressed"][data.joint_index]["minus"] = True
+        manual_move_state["pressed_joint"][data.joint_index]["minus"] = True
 
     rebuild_move_array(data.speed)
 
@@ -311,24 +314,24 @@ async def manual_move_press(data: ManualMovePressRequest):
             "joint_index": data.joint_index,
             "direction": data.direction,
             "speed": data.speed,
-            "move": robot_state["move"],
-            "error": manual_move_state["error"],
+            "move": robot_state["move_joint"],
+            "error": manual_move_state["error_joint"],
         },
     )
 
     return {
-        "move": robot_state["move"],
-        "error": manual_move_state["error"],
-        "error_message": manual_move_state["error_message"],
+        "move": robot_state["move_joint"],
+        "error": manual_move_state["error_joint"],
+        "error_message": manual_move_state["error_joint_message"],
     }
 
 
 @app.post("/robot/manual_move/release")
 async def manual_move_release(data: ManualMoveReleaseRequest):
     if data.direction == "+":
-        manual_move_state["pressed"][data.joint_index]["plus"] = False
+        manual_move_state["pressed_joint"][data.joint_index]["plus"] = False
     else:
-        manual_move_state["pressed"][data.joint_index]["minus"] = False
+        manual_move_state["pressed_joint"][data.joint_index]["minus"] = False
 
     rebuild_move_array(0)
 
@@ -337,24 +340,24 @@ async def manual_move_release(data: ManualMoveReleaseRequest):
         {
             "joint_index": data.joint_index,
             "direction": data.direction,
-            "move": robot_state["move"],
-            "error": manual_move_state["error"],
+            "move": robot_state["move_joint"],
+            "error": manual_move_state["error_joint"],
         },
     )
 
     return {
-        "move": robot_state["move"],
-        "error": manual_move_state["error"],
-        "error_message": manual_move_state["error_message"],
+        "move": robot_state["move_joint"],
+        "error": manual_move_state["error_joint"],
+        "error_message": manual_move_state["error_joint_message"],
     }
 
 
 @app.get("/robot/manual_move/state")
 async def manual_move_get_state():
     return {
-        "move": robot_state["move"],
-        "error": manual_move_state["error"],
-        "error_message": manual_move_state["error_message"],
+        "move": robot_state["move_joint"],
+        "error": manual_move_state["error_joint"],
+        "error_message": manual_move_state["error_joint_message"],
     }
 
 

@@ -13,6 +13,7 @@ from robot_state import (
     robot_state,
     manual_move_state,
 )
+from robot_kinematics import Robot6Dof
 import psycopg
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -384,6 +385,7 @@ async def manual_move_release(data: ManualMoveReleaseRequest):
         manual_move_state["pressed_joint"][data.joint_index]["minus"] = False
 
     rebuild_joint_move_array(0)
+    robot_state["cartesian"] = Robot6Dof.get_position(robot_state["joints"])
 
     print_message(
         "manual_move_release",

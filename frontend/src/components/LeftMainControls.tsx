@@ -6,6 +6,7 @@ type LeftMainControlsProps = {
     availableComPorts: string[];
     selectedCom: string;
     baudRate: string;
+    positionNumber: number | null;
     mode: "manual" | "auto";
     motionType: "ptp" | "lin";
     speed: number;
@@ -34,6 +35,7 @@ export function LeftMainControls({
                                      availableComPorts,
                                      selectedCom,
                                      baudRate,
+                                     positionNumber,
                                      mode,
                                      motionType,
                                      speed,
@@ -165,6 +167,10 @@ export function LeftMainControls({
                     onClick={onNextPosition}
                     disabled={uiDisabled}
                 />
+            </div>
+
+            <div className="position-number-box">
+                Position number: {positionNumber ?? "-"}
             </div>
 
             <div className="left-main-controls__bottom">

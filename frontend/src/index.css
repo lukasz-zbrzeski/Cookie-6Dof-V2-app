@@ -5,6 +5,7 @@
 @import "./styles/value-card.css";
 @import "./styles/status-bar.css";
 @import "./styles/config-tab.css";
+@import "./styles/plots.css";
 
 :root {
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

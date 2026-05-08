@@ -13,6 +13,8 @@ export function MainTab({ robot }: MainTabProps) {
     const {
         displayedJoints,
         cartesian,
+        positionNumber,
+        targetJoints,
         connected,
         isStopPressed,
         mode,
@@ -54,6 +56,7 @@ export function MainTab({ robot }: MainTabProps) {
                 availableComPorts={availableComPorts}
                 selectedCom={selectedCom}
                 baudRate={baudRate}
+                positionNumber={positionNumber}
                 mode={mode}
                 motionType={motionType}
                 speed={speed}
@@ -99,7 +102,7 @@ export function MainTab({ robot }: MainTabProps) {
                     onDecrementRelease={(index) => handleCartesianButtonRelease(index, "-")}
                 />
 
-                <ValueCard title="Ramka 3" values={fallbackCard3} />
+                <ValueCard title="Target Joint Values" values={targetJoints} />
                 <ValueCard title="Ramka 4" values={fallbackCard4} />
             </div>
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { TabButton } from "./components/TabButton";
 import { MainTab } from "./components/MainTab";
 import { ConfigTab } from "./components/ConfigTab";
+import { PlotsTab } from "./components/PlotsTab";
 import { useRobotState } from "./hooks/useRobotState";
 
 export type TabKey = "tab1" | "tab2" | "tab3";
@@ -62,7 +63,7 @@ export default function App() {
 
             <main>
                 {activeTab === "tab1" && <MainTab robot={robot} />}
-                {activeTab === "tab2" && <div />}
+                {activeTab === "tab2" && <PlotsTab />}
                 {activeTab === "tab3" && (
                     <ConfigTab
                         connected={robot.connected}

@@ -21,6 +21,8 @@ export async function getRobotState() {
         baud_rate: number | null;
         joints: number[];
         cartesian: number[];
+        position_number: number | null;
+        target_joints: number[];
     }>(response);
 }
 
@@ -142,12 +144,23 @@ export async function decrementCartesian(index: number) {
     return handleResponse<{ values: number[] }>(response);
 }
 
-export async function recordPosition() {
+export async function recordPosition(values: number[]) {
     const response = await fetch(`${API_BASE_URL}/robot/record`, {
         method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            values,
+        }),
     });
 
-    return handleResponse(response);
+    return handleResponse<{
+        record_id: number;
+        position_number: number;
+        target_joints: number[];
+        values: number[];
+    }>(response);
 }
 
 export async function resumeMotion() {
@@ -171,7 +184,10 @@ export async function prevPosition() {
         method: "POST",
     });
 
-    return handleResponse(response);
+    return handleResponse<{
+        position_number: number | null;
+        target_joints: number[];
+    }>(response);
 }
 
 export async function pauseMotion() {
@@ -187,7 +203,10 @@ export async function nextPosition() {
         method: "POST",
     });
 
-    return handleResponse(response);
+    return handleResponse<{
+        position_number: number | null;
+        target_joints: number[];
+    }>(response);
 }
 
 export async function pressManualMove(
@@ -279,5 +298,16 @@ export async function releaseManualCartesianMove(
         move_cartesian: string[];
         error: boolean;
         error_message: string;
+    }>(response);
+}
+
+export async function getRecordedPositions() {
+    const response = await fetch(`${API_BASE_URL}/robot/recorded-positions`);
+
+    return handleResponse<{
+        positions: {
+            id: number;
+            joints: number[];
+        }[];
     }>(response);
 }

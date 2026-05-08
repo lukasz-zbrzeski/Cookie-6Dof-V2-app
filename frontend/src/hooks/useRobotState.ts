@@ -107,6 +107,8 @@ export function useRobotState() {
     const [joints, setJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
     const [displayedJoints, setDisplayedJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
     const [cartesian, setCartesian] = useState<number[]>([0, 0, 0, 0, 0, 0]);
+    const [positionNumber, setPositionNumber] = useState<number | null>(null);
+    const [targetJoints, setTargetJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
     const [connected, setConnected] = useState(false);
     const [isStopPressed, setIsStopPressed] = useState(false);
     const [mode, setMode] = useState<RobotMode>("manual");
@@ -152,6 +154,8 @@ export function useRobotState() {
 
             setJoints(state.joints);
             setCartesian(state.cartesian);
+            setPositionNumber(state.position_number);
+            setTargetJoints(state.target_joints);
             setConnected(state.connected);
             setIsStopPressed(state.stopped);
             setMode(state.mode);
@@ -226,6 +230,8 @@ export function useRobotState() {
                 setConfigRows(createDefaultConfigRows());
                 clearConfigRowsFromStorage();
                 setDisplayedJoints([0, 0, 0, 0, 0, 0]);
+                setPositionNumber(null);
+                setTargetJoints([0, 0, 0, 0, 0, 0]);
                 await loadState();
                 await loadComPorts();
                 return;
@@ -397,7 +403,10 @@ export function useRobotState() {
 
     const handleRecord = async () => {
         await withBusy(async () => {
-            await recordPosition();
+            const response = await recordPosition(displayedJoints);
+
+            setPositionNumber(response.position_number);
+            setTargetJoints(response.target_joints);
         });
     };
 
@@ -415,7 +424,10 @@ export function useRobotState() {
 
     const handlePrevPosition = async () => {
         await withBusy(async () => {
-            await prevPosition();
+            const response = await prevPosition();
+
+            setPositionNumber(response.position_number);
+            setTargetJoints(response.target_joints);
         });
     };
 
@@ -427,7 +439,10 @@ export function useRobotState() {
 
     const handleNextPosition = async () => {
         await withBusy(async () => {
-            await nextPosition();
+            const response = await nextPosition();
+
+            setPositionNumber(response.position_number);
+            setTargetJoints(response.target_joints);
         });
     };
 
@@ -481,6 +496,8 @@ export function useRobotState() {
         joints,
         displayedJoints,
         cartesian,
+        positionNumber,
+        targetJoints,
         connected,
         isStopPressed,
         mode,

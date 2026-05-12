@@ -23,6 +23,8 @@ import {
     releaseManualMove,
     pressManualCartesianMove,
     releaseManualCartesianMove,
+    homeRobot,
+    setGripper,
 } from "../api/robotApi";
 
 export type RobotMode = "manual" | "auto";
@@ -122,6 +124,7 @@ export function useRobotState() {
     const [configRows, setConfigRows] = useState<ServoConfigRow[]>(() =>
         loadConfigRowsFromStorage()
     );
+    const [gripperClosed, setGripperClosed] = useState(false);
 
     const loadComPorts = useCallback(async () => {
         try {
@@ -154,8 +157,9 @@ export function useRobotState() {
 
             setJoints(state.joints);
             setCartesian(state.cartesian);
+            setGripperClosed(state.gripper_closed);
             setPositionNumber(state.position_number);
-            setTargetJoints(state.target_joints);
+            setTargetJoints((prev) => state.target_joints ?? prev);
             setConnected(state.connected);
             setIsStopPressed(state.stopped);
             setMode(state.mode);
@@ -492,6 +496,24 @@ export function useRobotState() {
         });
     };
 
+    const handleHome = async () => {
+        await withBusy(async () => {
+            const response = await homeRobot();
+
+            setJoints(response.joints);
+            setDisplayedJoints(response.joints);
+            setCartesian(response.cartesian);
+        });
+    };
+
+    const handleToggleGripper = async () => {
+        await withBusy(async () => {
+            const response = await setGripper(!gripperClosed);
+
+            setGripperClosed(response.gripper_closed);
+        });
+    };
+
     return {
         joints,
         displayedJoints,
@@ -537,5 +559,8 @@ export function useRobotState() {
         handleJointButtonRelease,
         handleCartesianButtonPress,
         handleCartesianButtonRelease,
+        gripperClosed,
+        handleHome,
+        handleToggleGripper,
     };
 }

@@ -23,6 +23,7 @@ export async function getRobotState() {
         cartesian: number[];
         position_number: number | null;
         target_joints: number[];
+        gripper_closed: boolean;
     }>(response);
 }
 
@@ -309,5 +310,34 @@ export async function getRecordedPositions() {
             id: number;
             joints: number[];
         }[];
+    }>(response);
+}
+
+export async function homeRobot() {
+    const response = await fetch(`${API_BASE_URL}/robot/home`, {
+        method: "POST",
+    });
+
+    return handleResponse<{
+        joints: number[];
+        cartesian: number[];
+    }>(response);
+}
+
+export async function setGripper(gripperClosed: boolean) {
+    const response = await fetch(`${API_BASE_URL}/robot/gripper`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            gripper_closed: gripperClosed,
+        }),
+    });
+
+    return handleResponse<{
+        gripper_closed: boolean;
+        position_number: number;
+        target_joints: number[];
     }>(response);
 }

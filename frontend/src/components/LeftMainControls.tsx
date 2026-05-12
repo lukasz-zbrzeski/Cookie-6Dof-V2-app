@@ -27,36 +27,42 @@ type LeftMainControlsProps = {
     onPrevPosition: () => void;
     onPause: () => void;
     onNextPosition: () => void;
+    gripperClosed: boolean;
+    onHome: () => void;
+    onToggleGripper: () => void;
 };
 
 export function LeftMainControls({
-                                     isStopPressed,
-                                     connected,
-                                     availableComPorts,
-                                     selectedCom,
-                                     baudRate,
-                                     positionNumber,
-                                     mode,
-                                     motionType,
-                                     speed,
-                                     busy = false,
-                                     controlsDisabled = false,
-                                     onSelectedComChange,
-                                     onBaudRateChange,
-                                     onConnectToggle,
-                                     onStop,
-                                     onReset,
-                                     onToggleMode,
-                                     onToggleMotionType,
-                                     onIncreaseSpeed,
-                                     onDecreaseSpeed,
-                                     onRecord,
-                                     onResume,
-                                     onPlay,
-                                     onPrevPosition,
-                                     onPause,
-                                     onNextPosition,
-                                 }: LeftMainControlsProps) {
+        isStopPressed,
+        connected,
+        availableComPorts,
+        selectedCom,
+        baudRate,
+        positionNumber,
+        mode,
+        motionType,
+        speed,
+        busy = false,
+        controlsDisabled = false,
+        onSelectedComChange,
+        onBaudRateChange,
+        onConnectToggle,
+        onStop,
+        onReset,
+        onToggleMode,
+        onToggleMotionType,
+        onIncreaseSpeed,
+        onDecreaseSpeed,
+        onRecord,
+        onResume,
+        onPlay,
+        onPrevPosition,
+        onPause,
+        onNextPosition,
+        gripperClosed,
+        onHome,
+        onToggleGripper,
+        }: LeftMainControlsProps) {
     const noDevicesAvailable = availableComPorts.length === 0;
     const uiDisabled = controlsDisabled || busy || !connected || isStopPressed;
 
@@ -127,6 +133,15 @@ export function LeftMainControls({
                     >
                         {mode === "manual" ? "Man/Auto (Manual)" : "Man/Auto (Auto)"}
                     </button>
+
+                    <button
+                        className="home-button"
+                        type="button"
+                        onClick={onHome}
+                        disabled={uiDisabled}
+                    >
+                        Home
+                    </button>
                 </div>
             </div>
 
@@ -169,8 +184,19 @@ export function LeftMainControls({
                 />
             </div>
 
-            <div className="position-number-box">
-                Position number: {positionNumber ?? "-"}
+            <div className="position-gripper-row">
+                <button
+                    className="gripper-button"
+                    type="button"
+                    onClick={onToggleGripper}
+                    disabled={uiDisabled}
+                >
+                    Gripper Open/Close ({gripperClosed ? "Closed" : "Open"})
+                </button>
+
+                <div className="position-number-box">
+                    Position number: {positionNumber ?? "-"}
+                </div>
             </div>
 
             <div className="left-main-controls__bottom">

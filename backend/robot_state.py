@@ -57,6 +57,10 @@ class RecordPositionRequest(BaseModel):
             raise ValueError("Do zapisu wymagane jest dokładnie 6 joint values.")
 
 
+class GripperRequest(BaseModel):
+    gripper_closed: bool
+
+
 class RobotStateResponse(BaseModel):
     connected: bool
     stopped: bool
@@ -67,6 +71,7 @@ class RobotStateResponse(BaseModel):
     cartesian: list[float]
     position_number: int | None
     target_joints: list[float]
+    gripper_closed: bool
 
 
 robot_state = {
@@ -82,6 +87,7 @@ robot_state = {
     "move_joint": ["0.0", "0", "0", "0", "0", "0", "0"],
     "move_cartesian": ["0.0", "0", "0", "0", "0", "0", "0"],
     "gripper_closed": False,
+    "last_recorded_gripper_closed": False,
 }
 
 manual_move_state = {

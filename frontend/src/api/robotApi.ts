@@ -108,40 +108,8 @@ export async function getJoints() {
     return handleResponse<{ values: number[] }>(response);
 }
 
-export async function incrementJoint(index: number) {
-    const response = await fetch(`${API_BASE_URL}/robot/joints/${index}/increment`, {
-        method: "PATCH",
-    });
-
-    return handleResponse<{ values: number[] }>(response);
-}
-
-export async function decrementJoint(index: number) {
-    const response = await fetch(`${API_BASE_URL}/robot/joints/${index}/decrement`, {
-        method: "PATCH",
-    });
-
-    return handleResponse<{ values: number[] }>(response);
-}
-
 export async function getCartesian() {
     const response = await fetch(`${API_BASE_URL}/robot/cartesian`);
-    return handleResponse<{ values: number[] }>(response);
-}
-
-export async function incrementCartesian(index: number) {
-    const response = await fetch(`${API_BASE_URL}/robot/cartesian/${index}/increment`, {
-        method: "PATCH",
-    });
-
-    return handleResponse<{ values: number[] }>(response);
-}
-
-export async function decrementCartesian(index: number) {
-    const response = await fetch(`${API_BASE_URL}/robot/cartesian/${index}/decrement`, {
-        method: "PATCH",
-    });
-
     return handleResponse<{ values: number[] }>(response);
 }
 

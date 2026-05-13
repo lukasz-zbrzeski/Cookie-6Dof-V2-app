@@ -419,26 +419,6 @@ async def set_joints(data: JointsUpdateRequest):
     }
 
 
-@app.patch("/robot/joints/{index}/increment")
-async def increment_joint(index: int):
-    ensure_index(index)
-    robot_state["joints"][index] = round2(robot_state["joints"][index] + 0.1)
-    print_message(
-        "increment_joint", {"index": index, "value": robot_state["joints"][index]}
-    )
-    return {"values": robot_state["joints"]}
-
-
-@app.patch("/robot/joints/{index}/decrement")
-async def decrement_joint(index: int):
-    ensure_index(index)
-    robot_state["joints"][index] = round2(robot_state["joints"][index] - 0.1)
-    print_message(
-        "decrement_joint", {"index": index, "value": robot_state["joints"][index]}
-    )
-    return {"values": robot_state["joints"]}
-
-
 @app.get("/robot/servos-config")
 async def get_servos_config():
     if not robot_state["connected"]:
@@ -543,28 +523,6 @@ async def set_cartesian(data: CartesianUpdateRequest):
         "message": "Wartości cartesian zaktualizowane.",
         "values": robot_state["cartesian"],
     }
-
-
-@app.patch("/robot/cartesian/{index}/increment")
-async def increment_cartesian(index: int):
-    ensure_index(index)
-    robot_state["cartesian"][index] = round2(robot_state["cartesian"][index] + 0.1)
-    print_message(
-        "increment_cartesian",
-        {"index": index, "value": robot_state["cartesian"][index]},
-    )
-    return {"values": robot_state["cartesian"]}
-
-
-@app.patch("/robot/cartesian/{index}/decrement")
-async def decrement_cartesian(index: int):
-    ensure_index(index)
-    robot_state["cartesian"][index] = round2(robot_state["cartesian"][index] - 0.1)
-    print_message(
-        "decrement_cartesian",
-        {"index": index, "value": robot_state["cartesian"][index]},
-    )
-    return {"values": robot_state["cartesian"]}
 
 
 @app.post("/robot/manual_cartesian_move/press")

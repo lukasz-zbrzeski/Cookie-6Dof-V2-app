@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import {
     connectRobot,
-    decrementCartesian,
-    decrementJoint,
     disconnectRobot,
     getCartesian,
     getJoints,
     getRobotState,
-    incrementCartesian,
-    incrementJoint,
     nextPosition,
     pauseMotion,
     playMotion,
@@ -283,32 +279,6 @@ export function useRobotState() {
         );
     };
 
-    const handleConfigPwmIncrement = (rowIndex: number) => {
-        setConfigRows((prev) =>
-            prev.map((row, index) =>
-                index === rowIndex
-                    ? {
-                        ...row,
-                        pwm: row.pwm + 1,
-                    }
-                    : row
-            )
-        );
-    };
-
-    const handleConfigPwmDecrement = (rowIndex: number) => {
-        setConfigRows((prev) =>
-            prev.map((row, index) =>
-                index === rowIndex
-                    ? {
-                        ...row,
-                        pwm: Math.max(row.pwm - 1, 0),
-                    }
-                    : row
-            )
-        );
-    };
-
     const handleToggleMotionType = () => {
         setMotionType((prev) => (prev === "ptp" ? "lin" : "ptp"));
     };
@@ -352,56 +322,6 @@ export function useRobotState() {
             const nextMode: RobotMode = mode === "manual" ? "auto" : "manual";
             await setRobotMode(nextMode);
             await loadState();
-        });
-    };
-
-    const handleIncrementJoint = async (index: number) => {
-        await withBusy(async () => {
-            const response = await incrementJoint(index);
-            setJoints(response.values);
-
-            setConfigRows((prev) =>
-                prev.map((row, rowIndex) =>
-                    rowIndex === index
-                        ? {
-                            ...row,
-                            angle: Number((row.angle + 0.1).toFixed(2)),
-                        }
-                        : row
-                )
-            );
-        });
-    };
-
-    const handleDecrementJoint = async (index: number) => {
-        await withBusy(async () => {
-            const response = await decrementJoint(index);
-            setJoints(response.values);
-
-            setConfigRows((prev) =>
-                prev.map((row, rowIndex) =>
-                    rowIndex === index
-                        ? {
-                            ...row,
-                            angle: Number((row.angle - 0.1).toFixed(2)),
-                        }
-                        : row
-                )
-            );
-        });
-    };
-
-    const handleIncrementCartesian = async (index: number) => {
-        await withBusy(async () => {
-            const response = await incrementCartesian(index);
-            setCartesian(response.values);
-        });
-    };
-
-    const handleDecrementCartesian = async (index: number) => {
-        await withBusy(async () => {
-            const response = await decrementCartesian(index);
-            setCartesian(response.values);
         });
     };
 
@@ -542,10 +462,6 @@ export function useRobotState() {
         handleToggleMotionType,
         handleIncreaseSpeed,
         handleDecreaseSpeed,
-        handleIncrementJoint,
-        handleDecrementJoint,
-        handleIncrementCartesian,
-        handleDecrementCartesian,
         handleRecord,
         handleResume,
         handlePlay,
@@ -553,8 +469,6 @@ export function useRobotState() {
         handlePause,
         handleNextPosition,
         updateConfigRowField,
-        handleConfigPwmIncrement,
-        handleConfigPwmDecrement,
         handleJointButtonPress,
         handleJointButtonRelease,
         handleCartesianButtonPress,

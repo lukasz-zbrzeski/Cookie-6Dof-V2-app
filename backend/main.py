@@ -198,14 +198,12 @@ def load_position_from_db(position_id: int):
 def load_last_position_from_db():
     with psycopg.connect(DATABASE_URL) as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
+            cur.execute("""
                 SELECT id, joint_1, joint_2, joint_3, joint_4, joint_5, joint_6
                 FROM recorded_positions
                 ORDER BY id DESC
                 LIMIT 1
-                """
-            )
+                """)
             row = cur.fetchone()
 
     if row is None:
@@ -326,6 +324,7 @@ async def connect_robot(data: ConnectRequest):
 
             # TODO turn on uart_worker
             uart.start_worker()
+            robot_state["joints"] = [servo["angle"] for servo in robot_config]
             return {
                 "message": "Połączono z robotem.",
                 "connected": True,
@@ -677,13 +676,11 @@ async def next_position():
 async def get_recorded_positions():
     with psycopg.connect(DATABASE_URL) as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
+            cur.execute("""
                 SELECT id, joint_1, joint_2, joint_3, joint_4, joint_5, joint_6, gripper_closed
                 FROM recorded_positions
                 ORDER BY id
-                """
-            )
+                """)
             rows = cur.fetchall()
 
     return {

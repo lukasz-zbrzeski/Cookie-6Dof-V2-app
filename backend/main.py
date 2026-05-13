@@ -209,6 +209,7 @@ async def connect_robot(data: ConnectRequest):
 
             # TODO turn on uart_worker
             uart.start_worker()
+            robot_state["joints"] = [servo["angle"] for servo in robot_config]
             return {
                 "message": "Połączono z robotem.",
                 "connected": True,

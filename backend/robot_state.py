@@ -66,9 +66,26 @@ robot_state = {
     "com_port": None,
     "baud_rate": None,
     "joints": [1.15, 1.52, 1.89, 2.26, 2.63, 3.00],
+    "gripper": 0.0,
     "cartesian": [2.05, 2.42, 2.79, 3.16, 3.53, 3.90],
-    "move_joint": ["0.0", "0", "0", "0", "0", "0", "0"],
-    "move_cartesian": ["0.0", "0", "0", "0", "0", "0", "0"],
+    "move_joint": [
+        "0.0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+    ],  # [increment by, 6x char change position]
+    "move_cartesian": [
+        "0.0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+    ],  # [%of max speed, 6x char change position]
 }
 
 manual_move_state = {

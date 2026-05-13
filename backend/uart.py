@@ -154,7 +154,7 @@ class RobotUartController:
                             return None
 
                     print("[SUKCES] Konfiguracja rozpakowana pomyślnie!")
-                    # TODO add forward kinematics init here
+                    Robot6Dof.update_joint_limits(parsed_servos)
                     robot_state["cartesian"] = Robot6Dof.get_position(
                         [servo["angle"] for servo in parsed_servos]
                     )
@@ -204,7 +204,7 @@ class RobotUartController:
         while not self._stop_thread:
             start_time = time.perf_counter()
 
-            # 1. Sprawdzamy kolejkę (komendy priorytetowe z API)
+            # 1. Sprawdzamy kolejkę (komendy priorytetowe z API np. RESET, RECORD)
             if not self.tx_queue.empty():
                 try:
                     command = self.tx_queue.get_nowait()
@@ -213,8 +213,17 @@ class RobotUartController:
                 except queue.Empty:
                     pass
 
-            # 2. CIĄGŁE WYSYŁANIE RUCHU MANUALNEGO
-            if robot_state["mode"] == "manual":
+            # --- ZMIENNE POMOCNICZE (Czy w ogóle mamy wciśnięty jakiś przycisk?) ---
+            is_moving_joint = robot_state["mode"] == "manual" and any(
+                v != "0" for v in robot_state["move_joint"][1:]
+            )
+            is_moving_cartesian = robot_state["mode"] == "manual" and any(
+                v != "0" for v in robot_state["move_cartesian"][1:]
+            )
+
+            # 2. RUCH PRZEGUBOWY (Joints) - Delegujemy do STM32
+            # Przekazujemy listę bezpośrednio jako string: "wielkość_kroku,+,-,0,0,0,0"
+            if is_moving_joint:
                 move_payload = ",".join(robot_state["move_joint"])
                 move_command = f"MOVE_JOINTS[{move_payload}];\n"
                 try:
@@ -223,33 +232,62 @@ class RobotUartController:
                 except Exception:
                     pass
 
-            # 3. BŁYSKAWICZNY ODCZYT DANYCH Z STM32 (BEZ BLOKOWANIA!)
+            # 3. RUCH KARTEZJAŃSKI (RRMC) - Python liczy Kinematykę
+            # Wysyłamy konkretne kąty do których STM32 ma płynnie dojechać
+            if is_moving_cartesian:
+                # Inicjujemy wirtualny cel, jeśli jeszcze nie istnieje
+                if "target_joints" not in robot_state:
+                    robot_state["target_joints"] = robot_state["joints"].copy()
+
+                current_target = robot_state["target_joints"]
+
+                # Wywołujemy RRMC (przekazujemy procent prędkości, funkcja sobie go podzieli)
+                current_cart, new_target = Robot6Dof.calculate_rrmc_from_cartesian_jog(
+                    current_target, robot_state["move_cartesian"]
+                )
+
+                # Zapisujemy wyliczony wynik jako cel dla następnego obiegu pętli (za 20ms)
+                robot_state["target_joints"] = new_target
+                robot_state["cartesian"] = current_cart
+
+                # Zmieniamy tablicę w string oddzielony przecinkami (np. "90.5, 45.0, ...")
+                move_payload = ",".join([f"{round(j, 2)}" for j in new_target])
+                move_command = f"MOVE_TO[{move_payload}];\n"
+
+                try:
+                    self.ser.write(move_command.encode("utf-8"))
+                    self.ser.flush()
+                except Exception:
+                    pass
+            else:
+                # !!! KLUCZOWE ZABEZPIECZENIE !!!
+                # Jeśli NIE jedziemy w trybie kartezjańskim (czyli np. używamy move_joint
+                # albo robot po prostu stoi), musimy twardo "przykleić" Wirtualny Cel
+                # do realnej pozycji z STM32. Dzięki temu, gdy znów wciśniesz guzik kartezjański,
+                # matematyka nie "szarpnie" z pamięci starej pozycji sprzed minuty.
+                robot_state["target_joints"] = robot_state["joints"].copy()
+
+            # 4. ODCZYT DANYCH Z STM32 (Błyskawiczny, nie blokuje pętli)
             try:
-                # self.ser.in_waiting zwraca liczbę bajtów czekających w buforze.
-                # Jeśli nic nie przyszło, omijamy tę pętlę (nie tracimy czasu!).
                 while self.ser.in_waiting > 0:
-                    # Odbieramy linijkę i czyścimy ją ze znaków końca linii (\r\n)
                     raw_line = self.ser.readline()
                     line = raw_line.decode("utf-8", errors="ignore").strip()
 
-                    # Jeśli to nasza ramka z pozycjami
                     if line.startswith("CURRENT_JOINTS[") and line.endswith("]"):
-                        # Wycinamy napis "CURRENT_JOINTS[" (15 znaków) i nawias "]" (-1)
                         content = line[15:-1]
                         parts = content.split(",")
 
                         if len(parts) == 6:
-                            # Zamieniamy teksty na ułamki, zaokrąglamy i wgrywamy do stanu
+                            # STM32 zgłasza realną pozycję silników - aktualizujemy ją
                             new_joints = [round(float(p), 2) for p in parts]
                             robot_state["joints"] = new_joints
-            except Exception as e:
-                # Jeśli ramka przyszła w połowie ucięta, po prostu ją ignorujemy
+            except Exception:
                 pass
 
-            # 4. Synchronizacja czasu - czekamy do pełnych 20ms
+            # 5. SYNCHRONIZACJA CZASU (Dokładnie 50Hz)
             elapsed = time.perf_counter() - start_time
             sleep_time = LOOP_INTERVAL - elapsed
-
+            print(robot_state["joints"])
             if sleep_time > 0:
                 time.sleep(sleep_time)
 

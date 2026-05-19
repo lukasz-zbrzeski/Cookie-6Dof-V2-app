@@ -226,44 +226,61 @@ class Cookie6DofRobot(rtb.DHRobot):
         elif move_cartesian[6] == "-":
             v_world[5] = -MAX_ANGULAR_VEL * speed_percent
 
-        # 4. Obliczanie Jakobianu i prędkości przegubów
+        # 3. Obliczanie Jakobianu
         J = self.jacob0(q)
 
-        # Pseudoinwersja z filtrem rcond=0.02
-        # To uratuje robota przed wariowaniem osi 4 i 6 podczas wyprostu ramienia,
-        # zachowując jednocześnie czystą jazdę po prostej.
+        # Pseudoinwersja z filtrem rcond
         J_pinv = np.linalg.pinv(J, rcond=0.02)
 
-        # q_dot to wyliczone prędkości kątowe silników (rad/s)
-        q_dot = J_pinv @ v_world
+        # q_dot to Surowe wyliczone prędkości kątowe silników (rad/s)
+        q_dot_raw = J_pinv @ v_world
 
-        # 5. Skalowanie bezpieczeństwa (Podniesiony limit z 1.0 na 3.0!)
-        # 3.0 rad/s to prawie 172 stopnie/sekundę - robot wreszcie zacznie reagować żwawo
-        MAX_Q_DOT = 3.0
-        max_current_q_dot = np.max(np.abs(q_dot))
+        # =================================================================
+        # MAGIA NR 3: Ochrona przed "Rozjeżdżaniem" (Drift Protection)
+        # Sprawdzamy co się stanie, ZANIM pozwolimy na ruch
+        # =================================================================
+        # Obliczamy faktyczny wektor ruchu, jaki wygeneruje ucięta macierz
+        v_actual = J @ q_dot_raw
+
+        # Liczymy błąd: Różnica między tym co chcemy, a tym co zrobimy
+        linear_error = np.linalg.norm(v_actual[:3] - v_world[:3])
+        angular_error = np.linalg.norm(v_actual[3:] - v_world[3:])
+
+        # Jeśli robot ucieka o więcej niż 0.05 m/s (50 mm/s) w złych osiach
+        # lub gubi orientację - ZATRZYMUJEMY GO
+        if linear_error > 0.05 or angular_error > 0.3:
+            print(
+                f"[KINEMATYKA WARNING] Blokada krawędzi! Próba kompensacji. Err: Lin={linear_error:.3f}, Ang={angular_error:.3f}"
+            )
+            return current_cartesian, current_joints_deg
+        # =================================================================
+
+        # 4. Skalowanie bezpieczeństwa - TUTAJ ZWIĘKSZAMY PRĘDKOŚĆ
+        # MAX_Q_DOT to max prędkość fizyczna silnika.
+        # Dałem 5.0 rad/s (ok. 280 stopni na sekundę!). Będzie SZYBKO.
+        MAX_Q_DOT = 2.5
+        max_current_q_dot = np.max(np.abs(q_dot_raw))
         if max_current_q_dot > MAX_Q_DOT:
-            q_dot = q_dot * (MAX_Q_DOT / max_current_q_dot)
+            q_dot = q_dot_raw * (MAX_Q_DOT / max_current_q_dot)
+        else:
+            q_dot = q_dot_raw
 
-        # 6. Całkowanie (wyliczanie nowej pozycji w radianach)
+        # 5. Wyliczanie nowej pozycji
         q_new = q + (q_dot * dt)
 
-        # 7. Zabezpieczenie limitów sprzętowych (Predictive Stop)
-        # Zamiast wciskać zablokowane ramię w limit (np.clip), przerywamy próbę ruchu
+        # 6. Zabezpieczenie limitów sprzętowych (Predictive Stop)
         for i in range(6):
             if self.links[i].qlim is not None:
                 q_min, q_max = self.links[i].qlim
-                margin = (
-                    0.017  # Zostawiamy bufor ~1 stopnia, by matematyka była stabilna
-                )
+                margin = 0.017 * 4  # Bufor ~1 stopnia
 
-                if q_new[i] < (q_min + margin) or q_new[i] > (q_max - margin):
+                if q_new[i] < (q_min - margin) or q_new[i] > (q_max + margin):
                     print(
-                        f"[KINEMATYKA WARNING] Ruch przerwany! Oś {i+1} osiągnęła limit sprzętowy."
+                        f"[KINEMATYKA WARNING] Ruch przerwany! Oś {i+1} osiągnęła limit."
                     )
-                    # Przerywamy całą operację, zwracamy obecne, nienaruszone kąty (brak ruchu)
                     return current_cartesian, current_joints_deg
 
-        # 8. Powrót do stopni dla silników i frontendu
+        # Powrót do stopni
         new_joints_deg = np.rad2deg(q_new).tolist()
 
         return current_cartesian, new_joints_deg

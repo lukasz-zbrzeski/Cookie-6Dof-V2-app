@@ -287,7 +287,7 @@ class RobotUartController:
             # 5. SYNCHRONIZACJA CZASU (Dokładnie 50Hz)
             elapsed = time.perf_counter() - start_time
             sleep_time = LOOP_INTERVAL - elapsed
-            print(robot_state["joints"])
+            # print(robot_state["joints"])
             if sleep_time > 0:
                 time.sleep(sleep_time)
 

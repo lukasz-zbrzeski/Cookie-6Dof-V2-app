@@ -61,6 +61,10 @@ class GripperRequest(BaseModel):
     gripper_closed: bool
 
 
+class ToolCordsRequest(BaseModel):
+    tool_cords: bool
+
+
 class RobotStateResponse(BaseModel):
     connected: bool
     stopped: bool
@@ -72,6 +76,7 @@ class RobotStateResponse(BaseModel):
     position_number: int | None
     target_joints: list[float]
     gripper_closed: bool
+    tool_cords: bool
 
 
 robot_state = {
@@ -88,6 +93,7 @@ robot_state = {
     "move_cartesian": ["0.0", "0", "0", "0", "0", "0", "0"],
     "gripper_closed": False,
     "last_recorded_gripper_closed": False,
+    "tool_cords": True,
 }
 
 manual_move_state = {

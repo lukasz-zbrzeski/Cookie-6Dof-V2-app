@@ -11,6 +11,7 @@ from robot_state import (
     ManualCartesianMoveReleaseRequest,
     RecordPositionRequest,
     GripperRequest,
+    ToolCordsRequest,
     RobotStateResponse,
     robot_state,
     manual_move_state,
@@ -714,4 +715,14 @@ async def set_gripper(data: GripperRequest):
     return {
         "message": "Stan chwytaka zmieniony.",
         "gripper_closed": robot_state["gripper_closed"],
+    }
+
+
+@app.post("/robot/tool-cords")
+async def set_tool_cords(data: ToolCordsRequest):
+    robot_state["tool_cords"] = data.tool_cords
+
+    return {
+        "message": "Układ współrzędnych zmieniony.",
+        "tool_cords": robot_state["tool_cords"],
     }

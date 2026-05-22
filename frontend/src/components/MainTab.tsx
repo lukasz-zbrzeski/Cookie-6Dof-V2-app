@@ -44,6 +44,8 @@ export function MainTab({ robot }: MainTabProps) {
         gripperClosed,
         handleHome,
         handleToggleGripper,
+        toolCords,
+        handleToggleToolCords,
     } = robot;
 
     const controlsDisabled = !connected || busy || isStopPressed;
@@ -106,7 +108,16 @@ export function MainTab({ robot }: MainTabProps) {
                 />
 
                 <ValueCard title="Target Joint Values" values={targetJoints} />
-                <ValueCard title="Current Cartesian Values (future feature)" values={[]} />
+                <div className="cords-card">
+                    <button
+                        className="cords-button"
+                        type="button"
+                        onClick={handleToggleToolCords}
+                        disabled={controlsDisabled}
+                    >
+                        Cords: World/Tool ({toolCords ? "Tool" : "World"})
+                    </button>
+                </div>
             </div>
 
             <div className="status-bar">

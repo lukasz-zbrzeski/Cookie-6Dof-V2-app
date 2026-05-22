@@ -21,6 +21,7 @@ import {
     releaseManualCartesianMove,
     homeRobot,
     setGripper,
+    setToolCords,
 } from "../api/robotApi";
 
 export type RobotMode = "manual" | "auto";
@@ -121,6 +122,7 @@ export function useRobotState() {
         loadConfigRowsFromStorage()
     );
     const [gripperClosed, setGripperClosed] = useState(false);
+    const [toolCords, setToolCordsState] = useState(true);
 
     const loadComPorts = useCallback(async () => {
         try {
@@ -154,6 +156,7 @@ export function useRobotState() {
             setJoints(state.joints);
             setCartesian(state.cartesian);
             setGripperClosed(state.gripper_closed);
+            setToolCordsState(state.tool_cords);
             setPositionNumber(state.position_number);
             setTargetJoints((prev) => state.target_joints ?? prev);
             setConnected(state.connected);
@@ -434,6 +437,13 @@ export function useRobotState() {
         });
     };
 
+    const handleToggleToolCords = async () => {
+        await withBusy(async () => {
+            const response = await setToolCords(!toolCords);
+            setToolCordsState(response.tool_cords);
+        });
+    };
+
     return {
         joints,
         displayedJoints,
@@ -476,5 +486,7 @@ export function useRobotState() {
         gripperClosed,
         handleHome,
         handleToggleGripper,
+        toolCords,
+        handleToggleToolCords,
     };
 }

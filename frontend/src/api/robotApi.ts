@@ -24,6 +24,7 @@ export async function getRobotState() {
         position_number: number | null;
         target_joints: number[];
         gripper_closed: boolean;
+        tool_cords: boolean;
     }>(response);
 }
 
@@ -307,5 +308,21 @@ export async function setGripper(gripperClosed: boolean) {
         gripper_closed: boolean;
         position_number: number;
         target_joints: number[];
+    }>(response);
+}
+
+export async function setToolCords(toolCords: boolean) {
+    const response = await fetch(`${API_BASE_URL}/robot/tool-cords`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            tool_cords: toolCords,
+        }),
+    });
+
+    return handleResponse<{
+        tool_cords: boolean;
     }>(response);
 }

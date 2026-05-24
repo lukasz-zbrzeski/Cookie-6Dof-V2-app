@@ -221,6 +221,14 @@ class RobotUartController:
                 v != "0" for v in robot_state["move_cartesian"][1:]
             )
 
+            if robot_state["send_home"] == True:
+                move_command = f"HOME;\n"
+                try:
+                    self.ser.write(move_command.encode("utf-8"))
+                    self.ser.flush()
+                except Exception:
+                    pass
+            robot_state["send_home"] = False
             # 2. RUCH PRZEGUBOWY (Joints) - Delegujemy do STM32
             # Przekazujemy listę bezpośrednio jako string: "wielkość_kroku,+,-,0,0,0,0"
             if is_moving_joint:

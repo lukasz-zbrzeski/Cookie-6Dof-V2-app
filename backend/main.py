@@ -700,6 +700,7 @@ async def get_recorded_positions():
 async def home_robot():
     robot_state["joints"] = [0.0, 90.0, 0.0, 0.0, 0.0, 0.0]
     robot_state["cartesian"] = Robot6Dof.get_position(robot_state["joints"])
+    robot_state["send_home"] = True
 
     return {
         "message": "Robot ustawiony w pozycji HOME.",

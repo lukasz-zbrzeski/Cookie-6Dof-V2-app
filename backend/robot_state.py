@@ -94,6 +94,7 @@ robot_state = {
     "gripper_closed": False,
     "last_recorded_gripper_closed": False,
     "tool_cords": True,
+    "send_home": False,
 }
 
 manual_move_state = {

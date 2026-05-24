@@ -168,8 +168,7 @@ class Cookie6DofRobot(rtb.DHRobot):
         self, current_joints_deg: list[float], move_cartesian: list[str]
     ) -> tuple[list[float], list[float]]:
         """
-        Sterowanie oparte na Jakobianie (Resolved Rate Motion Control).
-        Parsuje wektor move_cartesian i wylicza prędkości silników.
+        Sterowanie oparte na Jakobianie (RRMC) z predykcyjnym zabezpieczeniem przed dryfem.
         """
         # 1. Przygotowanie danych wejściowych
         q = np.deg2rad(current_joints_deg)
@@ -177,14 +176,18 @@ class Cookie6DofRobot(rtb.DHRobot):
 
         # Obliczamy aktualną pozycję (FK) dla interfejsu
         current_pose = self.fkine(q)
-        curr_xyz = current_pose.t.tolist()
+
+        # Do GUI wysyłamy milimetry i stopnie
+        curr_xyz = [val * 1000.0 for val in current_pose.t.tolist()]
         curr_rpy = np.rad2deg(current_pose.rpy()).tolist()
         current_cartesian = [round(val, 2) for val in (curr_xyz + curr_rpy)]
 
-        # 2. Definicja bazowych prędkości
-        speed_percent = float(move_cartesian[0]) / 100.0
-        MAX_LINEAR_VEL = 50.0  # mm/s
-        MAX_ANGULAR_VEL = 0.5  # rad/s
+        # 2. Definicja bazowych prędkości (W METRACH!)
+        # Skoro interfejs wysyła wartość już znormalizowaną (np. 0.2 dla 20%)
+        speed_percent = float(move_cartesian[0])
+
+        MAX_LINEAR_VEL = 0.20  # 0.2 m/s = 200 mm/s
+        MAX_ANGULAR_VEL = 1.0  # 1.0 rad/s
 
         # 3. Budowa wektora prędkości kartezjańskiej v = [vx, vy, vz, wx, wy, wz]
         v_world = np.zeros(6)
@@ -205,7 +208,7 @@ class Cookie6DofRobot(rtb.DHRobot):
         elif move_cartesian[3] == "-":
             v_world[2] = -MAX_LINEAR_VEL * speed_percent
 
-        # Rotacje (Roll, Pitch, Yaw) - wokół osi świata
+        # Rotacje (Roll, Pitch, Yaw)
         if move_cartesian[4] == "+":
             v_world[3] = MAX_ANGULAR_VEL * speed_percent
         elif move_cartesian[4] == "-":
@@ -221,36 +224,168 @@ class Cookie6DofRobot(rtb.DHRobot):
         elif move_cartesian[6] == "-":
             v_world[5] = -MAX_ANGULAR_VEL * speed_percent
 
-        # 4. Obliczanie Jakobianu i prędkości przegubów
-        # jacob0 liczy Jakobian w układzie bazowym (World Frame)
+        # 4. Obliczanie Jakobianu i bezpieczna pseudoinwersja DLS (SVD)
         J = self.jacob0(q)
+        U, s, Vt = np.linalg.svd(J)
 
-        # Pseudoinwersja Jakobianu (wykorzystujemy pinv dla stabilności przy osobliwościach)
-        J_pinv = np.linalg.pinv(J)
+        # Parametry adaptacyjnego tłumienia (zapobiegają nieskończonym prędkościom stawów)
+        LAMBDA_MAX = 0.04
+        S_EPSILON = 0.02
 
-        # q_dot to prędkości kątowe silników (rad/s)
+        s_inv = np.zeros_like(s)
+        for i in range(len(s)):
+            if s[i] > S_EPSILON:
+                s_inv[i] = 1.0 / s[i]
+            else:
+                damping = (1.0 - (s[i] / S_EPSILON) ** 2) * LAMBDA_MAX
+                s_inv[i] = s[i] / (s[i] ** 2 + damping**2)
+
+        S_inv_matrix = np.zeros((6, 6))
+        np.fill_diagonal(S_inv_matrix, s_inv)
+        J_pinv = Vt.T @ S_inv_matrix @ U.T
+
+        # Wyliczenie prędkości stawów
         q_dot = J_pinv @ v_world
 
-        # 5. Skalowanie bezpieczeństwa (nie pozwól silnikom kręcić się zbyt szybko)
-        MAX_Q_DOT = 1.0  # rad/s
+        # Skalowanie bezpieczeństwa silników
+        MAX_Q_DOT = 2.5
         max_current_q_dot = np.max(np.abs(q_dot))
         if max_current_q_dot > MAX_Q_DOT:
             q_dot = q_dot * (MAX_Q_DOT / max_current_q_dot)
 
-        # 6. Całkowanie (wyliczanie nowej pozycji)
-        q_new = q + (q_dot * dt)
+        # =========================================================================
+        # ZABEZPIECZENIE: Predykcyjna weryfikacja błędu pozycji (Predictive Check)
+        # =========================================================================
+        # Symulujemy wirtualny krok do przodu
+        q_next_virtual = q + (q_dot * dt)
+        next_pose_virtual = self.fkine(q_next_virtual)
 
-        # 7. Sprawdzanie limitów sprzętowych (qlim)
-        # for i in range(6):
-        #     if self.links[i].qlim is not None:
-        #         q_new[i] = np.clip(
-        #             q_new[i], self.links[i].qlim[0], self.links[i].qlim[1]
-        #         )
+        # Sprawdzamy, o ile REALNIE przesunie się końcówka narzędzia (w metrach)
+        # w stosunku do tego, co ZADALIŚMY w v_world
+        actual_linear_delta = next_pose_virtual.t - current_pose.t
+        expected_linear_delta = v_world[:3] * dt
+
+        # Błąd pozycji liniowej (Translacji XYZ) w tym kroku
+        position_error = np.linalg.norm(actual_linear_delta - expected_linear_delta)
+
+        # TOLERANCJA: Jeśli błąd pozycji XYZ przekroczy 1 mm (0.001 m) na krok
+        # (co oznacza, że robot przez osobliwość zaczyna uciekać z zadanego toru) -> Odcinamy ruch!
+        ALLOWED_POSITION_ERROR = 0.001
+
+        if position_error > ALLOWED_POSITION_ERROR:
+            print(
+                f"[KINEMATYKA BLOKADA] Zatrzymanie! Osobliwość narusza pozycję TCP. "
+                f"Błąd translacji: {position_error * 1000.0:.2f} mm (Max: {ALLOWED_POSITION_ERROR * 1000.0:.2f} mm)"
+            )
+            # Zwracamy stare stawy (brak ruchu), chroniąc pozycję narzędzia przed rozjechaniem
+            return current_cartesian, current_joints_deg
+        # =========================================================================
+
+        # 5. Jeśli test przeszedł pomyślnie – zatwierdzamy nowy krok
+        q_new = q_next_virtual
+
+        # 6. Zabezpieczenie limitów sprzętowych
+        for i in range(6):
+            if self.links[i].qlim is not None:
+                q_min, q_max = self.links[i].qlim
+                margin = np.deg2rad(1.5)
+
+                if q_new[i] < (q_min - margin) or q_new[i] > (q_max + margin):
+                    print(
+                        f"[KINEMATYKA WARNING] Ruch przerwany! Oś {i+1} osiągnęła limit."
+                    )
+                    return current_cartesian, current_joints_deg
 
         # Powrót do stopni
         new_joints_deg = np.rad2deg(q_new).tolist()
 
         return current_cartesian, new_joints_deg
+
+    """  def calculate_rrmc_from_cartesian_jog(
+        self, current_joints_deg: list[float], move_cartesian: list[str]
+    ) -> tuple[list[float], list[float]]:
+        # 1. Przygotowanie danych
+        q = np.deg2rad(current_joints_deg)
+        dt = 0.02  # 50Hz
+
+        current_pose = self.fkine(q)
+        curr_xyz = [val * 1000.0 for val in current_pose.t.tolist()]  # Metry na MM
+        curr_rpy = np.rad2deg(current_pose.rpy()).tolist()
+        current_cartesian = [round(val, 2) for val in (curr_xyz + curr_rpy)]
+
+        # 2. Prędkości (w metrach dla stabilności solvera!)
+        speed_percent = float(move_cartesian[0]) / 1.0
+        print(move_cartesian[0])
+        MAX_LINEAR_VEL = 0.5  # 50 mm/s = 0.05 m/s
+        MAX_ANGULAR_VEL = 0.5  # rad/s
+
+        v_world = np.zeros(6)
+
+        if move_cartesian[1] == "+":
+            v_world[0] = MAX_LINEAR_VEL * speed_percent
+        elif move_cartesian[1] == "-":
+            v_world[0] = -MAX_LINEAR_VEL * speed_percent
+        if move_cartesian[2] == "+":
+            v_world[1] = MAX_LINEAR_VEL * speed_percent
+        elif move_cartesian[2] == "-":
+            v_world[1] = -MAX_LINEAR_VEL * speed_percent
+        if move_cartesian[3] == "+":
+            v_world[2] = MAX_LINEAR_VEL * speed_percent
+        elif move_cartesian[3] == "-":
+            v_world[2] = -MAX_LINEAR_VEL * speed_percent
+        if move_cartesian[4] == "+":
+            v_world[3] = MAX_ANGULAR_VEL * speed_percent
+        elif move_cartesian[4] == "-":
+            v_world[3] = -MAX_ANGULAR_VEL * speed_percent
+        if move_cartesian[5] == "+":
+            v_world[4] = MAX_ANGULAR_VEL * speed_percent
+        elif move_cartesian[5] == "-":
+            v_world[4] = -MAX_ANGULAR_VEL * speed_percent
+        if move_cartesian[6] == "+":
+            v_world[5] = MAX_ANGULAR_VEL * speed_percent
+        elif move_cartesian[6] == "-":
+            v_world[5] = -MAX_ANGULAR_VEL * speed_percent
+
+        # 3. Obliczanie Jakobianu
+        J = self.jacob0(q)
+
+        # =================================================================
+        # MAGIA NR 1: Damped Least Squares (DLS) zamiast zwykłego PINV
+        # =================================================================
+        damping_factor = 0.5  # Współczynnik tłumienia (zwiększ jeśli nadal szarpie)
+
+        # Wzór na DLS: J_T * (J * J_T + lambda^2 * I)^-1
+        J_dls = J.T @ np.linalg.inv(J @ J.T + (damping_factor**2) * np.eye(6))
+
+        q_dot = J_dls @ v_world
+        # =================================================================
+
+        # 4. Skalowanie prędkości (Bezpieczeństwo)
+        MAX_Q_DOT = 1.0
+        max_current_q_dot = np.max(np.abs(q_dot))
+        if max_current_q_dot > MAX_Q_DOT:
+            q_dot = q_dot * (MAX_Q_DOT / max_current_q_dot)
+
+        # 5. Wyliczanie nowej pozycji
+        q_new = q + (q_dot * dt)
+
+        # =================================================================
+        # MAGIA NR 2: Przewidywanie uderzenia w limit (Predictive Stop)
+        # =================================================================
+        for i in range(6):
+            if self.links[i].qlim is not None:
+                q_min, q_max = self.links[i].qlim
+                # Zostawiamy 1 stopień (0.017 rad) marginesu błędu
+                margin = 0.017
+
+                if q_new[i] < (q_min + margin) or q_new[i] > (q_max - margin):
+                    print(f"[KINEMATYKA] Zablokowano ruch! Oś {i+1} osiąga limit.")
+                    # Zwracamy STARE kąty. Robot po prostu ignoruje wciśnięty przycisk.
+                    return current_cartesian, current_joints_deg
+        # =================================================================
+
+        new_joints_deg = np.rad2deg(q_new).tolist()
+        return current_cartesian, new_joints_deg """
 
 
 Robot6Dof = Cookie6DofRobot()

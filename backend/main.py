@@ -9,6 +9,9 @@ from robot_state import (
     ManualMoveReleaseRequest,
     ManualCartesianMovePressRequest,
     ManualCartesianMoveReleaseRequest,
+    RecordPositionRequest,
+    GripperRequest,
+    ToolCordsRequest,
     RobotStateResponse,
     robot_state,
     manual_move_state,
@@ -139,7 +142,7 @@ def rebuild_cartesian_move_array(speed: int) -> None:
     manual_move_state["error_cartesian_message"] = ""
 
 
-def save_current_joints_to_db(joints: list[float]) -> int:
+def save_current_joints_to_db(joints: list[float], gripper_closed: bool) -> int:
     if len(joints) != 6:
         raise ValueError("Do zapisu wymagane jest dokładnie 6 joint values.")
 
@@ -149,9 +152,10 @@ def save_current_joints_to_db(joints: list[float]) -> int:
                 """
                 INSERT INTO recorded_positions (
                     joint_1, joint_2, joint_3,
-                    joint_4, joint_5, joint_6
+                    joint_4, joint_5, joint_6,
+                    gripper_closed
                 )
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
@@ -161,12 +165,123 @@ def save_current_joints_to_db(joints: list[float]) -> int:
                     joints[3],
                     joints[4],
                     joints[5],
+                    gripper_closed,
                 ),
             )
             inserted_id = cur.fetchone()[0]
         conn.commit()
 
     return inserted_id
+
+
+def load_position_from_db(position_id: int):
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, joint_1, joint_2, joint_3, joint_4, joint_5, joint_6
+                FROM recorded_positions
+                WHERE id = %s
+                """,
+                (position_id,),
+            )
+            row = cur.fetchone()
+
+    if row is None:
+        return None
+
+    return {
+        "id": row[0],
+        "joints": [row[1], row[2], row[3], row[4], row[5], row[6]],
+    }
+
+
+def load_last_position_from_db():
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, joint_1, joint_2, joint_3, joint_4, joint_5, joint_6
+                FROM recorded_positions
+                ORDER BY id DESC
+                LIMIT 1
+                """)
+            row = cur.fetchone()
+
+    if row is None:
+        robot_state["position_number"] = None
+        robot_state["target_joints"] = [0, 0, 0, 0, 0, 0]
+        return
+
+    robot_state["position_number"] = row[0]
+    robot_state["target_joints"] = [row[1], row[2], row[3], row[4], row[5], row[6]]
+
+
+def load_next_position_from_db():
+    current_id = robot_state["position_number"]
+
+    if current_id is None:
+        load_last_position_from_db()
+        return
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, joint_1, joint_2, joint_3, joint_4, joint_5, joint_6
+                FROM recorded_positions
+                WHERE id > %s
+                ORDER BY id ASC
+                LIMIT 1
+                """,
+                (current_id,),
+            )
+            row = cur.fetchone()
+
+    if row is None:
+        return
+
+    robot_state["position_number"] = row[0]
+    robot_state["target_joints"] = [row[1], row[2], row[3], row[4], row[5], row[6]]
+
+
+def load_prev_position_from_db():
+    current_id = robot_state["position_number"]
+
+    if current_id is None:
+        load_last_position_from_db()
+        return
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, joint_1, joint_2, joint_3, joint_4, joint_5, joint_6
+                FROM recorded_positions
+                WHERE id < %s
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (current_id,),
+            )
+            row = cur.fetchone()
+
+    if row is None:
+        return
+
+    robot_state["position_number"] = row[0]
+    robot_state["target_joints"] = [row[1], row[2], row[3], row[4], row[5], row[6]]
+
+
+def clear_recorded_positions() -> None:
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE TABLE recorded_positions RESTART IDENTITY")
+        conn.commit()
+
+    robot_state["position_number"] = None
+    robot_state["target_joints"] = [0, 0, 0, 0, 0, 0]
+    robot_state["gripper_closed"] = False
+    robot_state["last_recorded_gripper_closed"] = False
 
 
 @app.get("/")
@@ -194,6 +309,7 @@ async def connect_robot(data: ConnectRequest):
         robot_state["connected"] = True
         robot_state["com_port"] = data.com_port
         robot_state["baud_rate"] = data.baud_rate
+        clear_recorded_positions()
         print_message(
             "connect",
             {"com_port": data.com_port, "baud_rate": data.baud_rate},
@@ -303,26 +419,6 @@ async def set_joints(data: JointsUpdateRequest):
     }
 
 
-@app.patch("/robot/joints/{index}/increment")
-async def increment_joint(index: int):
-    ensure_index(index)
-    robot_state["joints"][index] = round2(robot_state["joints"][index] + 0.1)
-    print_message(
-        "increment_joint", {"index": index, "value": robot_state["joints"][index]}
-    )
-    return {"values": robot_state["joints"]}
-
-
-@app.patch("/robot/joints/{index}/decrement")
-async def decrement_joint(index: int):
-    ensure_index(index)
-    robot_state["joints"][index] = round2(robot_state["joints"][index] - 0.1)
-    print_message(
-        "decrement_joint", {"index": index, "value": robot_state["joints"][index]}
-    )
-    return {"values": robot_state["joints"]}
-
-
 @app.get("/robot/servos-config")
 async def get_servos_config():
     if not robot_state["connected"]:
@@ -429,28 +525,6 @@ async def set_cartesian(data: CartesianUpdateRequest):
     }
 
 
-@app.patch("/robot/cartesian/{index}/increment")
-async def increment_cartesian(index: int):
-    ensure_index(index)
-    robot_state["cartesian"][index] = round2(robot_state["cartesian"][index] + 0.1)
-    print_message(
-        "increment_cartesian",
-        {"index": index, "value": robot_state["cartesian"][index]},
-    )
-    return {"values": robot_state["cartesian"]}
-
-
-@app.patch("/robot/cartesian/{index}/decrement")
-async def decrement_cartesian(index: int):
-    ensure_index(index)
-    robot_state["cartesian"][index] = round2(robot_state["cartesian"][index] - 0.1)
-    print_message(
-        "decrement_cartesian",
-        {"index": index, "value": robot_state["cartesian"][index]},
-    )
-    return {"values": robot_state["cartesian"]}
-
-
 @app.post("/robot/manual_cartesian_move/press")
 async def manual_cartesian_move_press(data: ManualCartesianMovePressRequest):
     if not robot_state["connected"]:
@@ -523,13 +597,35 @@ async def manual_cartesian_move_get_state():
 
 
 @app.post("/robot/record")
-async def record_position():
-    print_message("record")
-    record_id = save_current_joints_to_db(robot_state["joints"])
+async def record_position(data: RecordPositionRequest):
+    print_message("record", {"values": data.values})
+
+    joints_to_save = [round2(v) for v in data.values]
+
+    # 1. Najpierw zapisujemy sam ruch robota, bez zmiany chwytaka
+    first_record_id = save_current_joints_to_db(
+        joints_to_save,
+        robot_state["last_recorded_gripper_closed"],
+    )
+
+    robot_state["position_number"] = first_record_id
+    robot_state["target_joints"] = joints_to_save.copy()
+
+    if robot_state["gripper_closed"] != robot_state["last_recorded_gripper_closed"]:
+        second_record_id = save_current_joints_to_db(
+            joints_to_save,
+            robot_state["gripper_closed"],
+        )
+
+        robot_state["position_number"] = second_record_id
+        robot_state["target_joints"] = joints_to_save.copy()
+        robot_state["last_recorded_gripper_closed"] = robot_state["gripper_closed"]
+
     return {
         "message": "Pozycja zapisana.",
-        "record_id": record_id,
-        "values": robot_state["joints"],
+        "position_number": robot_state["position_number"],
+        "target_joints": robot_state["target_joints"],
+        "values": joints_to_save,
     }
 
 
@@ -554,10 +650,80 @@ async def resume_motion():
 @app.post("/robot/prev-position")
 async def prev_position():
     print_message("prev_position")
-    return {"message": "Przejście do poprzedniej pozycji."}
+
+    load_prev_position_from_db()
+
+    return {
+        "message": "Przejście do poprzedniej pozycji.",
+        "position_number": robot_state["position_number"],
+        "target_joints": robot_state["target_joints"],
+    }
 
 
 @app.post("/robot/next-position")
 async def next_position():
     print_message("next_position")
-    return {"message": "Przejście do następnej pozycji."}
+
+    load_next_position_from_db()
+
+    return {
+        "message": "Przejście do następnej pozycji.",
+        "position_number": robot_state["position_number"],
+        "target_joints": robot_state["target_joints"],
+    }
+
+
+@app.get("/robot/recorded-positions")
+async def get_recorded_positions():
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, joint_1, joint_2, joint_3, joint_4, joint_5, joint_6, gripper_closed
+                FROM recorded_positions
+                ORDER BY id
+                """)
+            rows = cur.fetchall()
+
+    return {
+        "positions": [
+            {
+                "id": row[0],
+                "joints": [row[1], row[2], row[3], row[4], row[5], row[6]],
+                "gripper_closed": row[7],
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.post("/robot/home")
+async def home_robot():
+    robot_state["joints"] = [0.0, 90.0, 0.0, 0.0, 0.0, 0.0]
+    robot_state["cartesian"] = Robot6Dof.get_position(robot_state["joints"])
+    robot_state["send_home"] = True
+
+    return {
+        "message": "Robot ustawiony w pozycji HOME.",
+        "joints": robot_state["joints"],
+        "cartesian": robot_state["cartesian"],
+    }
+
+
+@app.post("/robot/gripper")
+async def set_gripper(data: GripperRequest):
+    robot_state["gripper_closed"] = data.gripper_closed
+
+    return {
+        "message": "Stan chwytaka zmieniony.",
+        "gripper_closed": robot_state["gripper_closed"],
+    }
+
+
+@app.post("/robot/tool-cords")
+async def set_tool_cords(data: ToolCordsRequest):
+    robot_state["tool_cords"] = data.tool_cords
+
+    return {
+        "message": "Układ współrzędnych zmieniony.",
+        "tool_cords": robot_state["tool_cords"],
+    }

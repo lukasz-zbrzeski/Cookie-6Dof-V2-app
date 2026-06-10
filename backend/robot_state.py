@@ -49,6 +49,22 @@ class ManualCartesianMoveReleaseRequest(BaseModel):
     direction: Literal["+", "-"]
 
 
+class RecordPositionRequest(BaseModel):
+    values: list[float]
+
+    def model_post_init(self, __context):
+        if len(self.values) != 6:
+            raise ValueError("Do zapisu wymagane jest dokładnie 6 joint values.")
+
+
+class GripperRequest(BaseModel):
+    gripper_closed: bool
+
+
+class ToolCordsRequest(BaseModel):
+    tool_cords: bool
+
+
 class RobotStateResponse(BaseModel):
     connected: bool
     stopped: bool
@@ -57,6 +73,10 @@ class RobotStateResponse(BaseModel):
     baud_rate: int | None
     joints: list[float]
     cartesian: list[float]
+    position_number: int | None
+    target_joints: list[float]
+    gripper_closed: bool
+    tool_cords: bool
 
 
 robot_state = {
@@ -66,26 +86,15 @@ robot_state = {
     "com_port": None,
     "baud_rate": None,
     "joints": [1.15, 1.52, 1.89, 2.26, 2.63, 3.00],
-    "gripper": 0.0,
     "cartesian": [2.05, 2.42, 2.79, 3.16, 3.53, 3.90],
-    "move_joint": [
-        "0.0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-    ],  # [increment by, 6x char change position]
-    "move_cartesian": [
-        "0.0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-    ],  # [%of max speed, 6x char change position]
+    "target_joints": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "position_number": None,
+    "move_joint": ["0.0", "0", "0", "0", "0", "0", "0"],
+    "move_cartesian": ["0.0", "0", "0", "0", "0", "0", "0"],
+    "gripper_closed": False,
+    "last_recorded_gripper_closed": False,
+    "tool_cords": True,
+    "send_home": False,
 }
 
 manual_move_state = {

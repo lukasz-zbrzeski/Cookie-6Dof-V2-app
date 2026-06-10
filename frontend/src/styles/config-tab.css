@@ -2,52 +2,356 @@
     border: 4px solid #000000;
     background: #d9d9d9;
     padding: 20px;
-    min-height: 320px;
+    min-height: 640px;
 }
 
-.config-grid {
-    display: grid;
-    grid-template-columns:
-        minmax(120px, 1fr)
-        minmax(120px, 1fr)
-        minmax(120px, 1fr)
-        minmax(120px, 1fr)
-        minmax(100px, 120px)
-        minmax(100px, 120px);
-    gap: 16px;
-    align-items: center;
-}
-
-.config-grid--header {
-    margin-bottom: 14px;
-}
-
-.config-header-cell {
-    font-size: 14px;
-    font-weight: 800;
-    text-align: center;
-    color: #222222;
-}
-
-.config-rows {
+.config-topbar {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 24px;
 }
 
-.config-row {
-    align-items: stretch;
-}
-
-.config-cell-input {
-    width: 100%;
-    min-height: 56px;
+.config-mode-toggle {
+    min-height: 52px;
     border: 4px solid #111111;
     background: #f3f3f3;
     color: #111111;
-    padding: 10px 12px;
-    font-weight: 700;
+    padding: 10px 18px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.config-mode-toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.config-servo-picker {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.config-servo-picker__label {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111111;
+}
+
+.config-servo-picker__select {
+    min-width: 120px;
+    min-height: 52px;
+    border: 4px solid #111111;
+    background: #f3f3f3;
+    color: #111111;
+    padding: 8px 12px;
+    font-weight: 800;
     outline: none;
+}
+
+.config-main-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 28px;
+    align-items: start;
+}
+
+.config-test-card {
+    border: 4px solid #111111;
+    background: #d9d9d9;
+    padding: 22px;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.config-test-card__title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 800;
+    color: #111111;
+}
+
+.config-test-card__buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: stretch;
+}
+
+.config-save-button {
+    border: 4px solid #111111;
+    background: #f3f3f3;
+    color: #111111;
+    padding: 12px 16px;
+    font-weight: 800;
+    cursor: pointer;
+    min-height: 60px;
+}
+
+.config-save-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.config-servo-status {
+    margin-top: auto;
+    border: 4px solid #111111;
+    background: #f3f3f3;
+    color: #111111;
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    font-size: 22px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.servo-panel {
+    border: 4px solid #111111;
+    background: #d9d9d9;
+    padding: 20px 20px 18px;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+}
+
+.servo-panel__gauge-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+
+.servo-panel__gauge-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 140px minmax(260px, 420px) 140px;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+}
+
+.servo-panel__side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.servo-panel__micro-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: #111111;
+    line-height: 1;
+}
+
+.servo-gauge {
+    position: relative;
+    width: 360px;
+    height: 260px;
+    margin: 0 auto;
+}
+
+.servo-gauge__left-arc,
+.servo-gauge__right-arc {
+    position: absolute;
+    top: 8px;
+    width: 112px;
+    height: 190px;
+    border-top: 5px solid #111111;
+}
+
+.servo-gauge__left-arc {
+    left: 34px;
+    border-left: 5px solid #111111;
+    border-top-left-radius: 120px;
+}
+
+.servo-gauge__right-arc {
+    right: 34px;
+    border-right: 5px solid #111111;
+    border-top-right-radius: 120px;
+}
+
+.servo-gauge__tick {
+    position: absolute;
+    width: 5px;
+    height: 24px;
+    background: #111111;
+    border-radius: 999px;
+}
+
+.servo-gauge__tick--0 {
+    left: 34px;
+    top: 154px;
+    width: 28px;
+    height: 5px;
+}
+
+.servo-gauge__tick--45 {
+    left: 86px;
+    top: 74px;
+    transform: rotate(-45deg);
+}
+
+.servo-gauge__tick--90 {
+    left: 178px;
+    top: 36px;
+}
+
+.servo-gauge__tick--135 {
+    right: 86px;
+    top: 74px;
+    transform: rotate(45deg);
+}
+
+.servo-gauge__tick--180 {
+    right: 34px;
+    top: 154px;
+    width: 28px;
+    height: 5px;
+}
+
+.servo-gauge__body {
+    position: absolute;
+    left: 50%;
+    top: 106px;
+    transform: translateX(-50%);
+    width: 98px;
+    height: 126px;
+    border: 4px solid #111111;
+    background: #f3f3f3;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.servo-gauge__label {
+    font-size: 26px;
+    font-weight: 800;
+    color: #111111;
+    margin-top: 24px;
+}
+
+.servo-gauge__needle {
+    position: absolute;
+    left: 50%;
+    top: 75px;
+    width: 4px;
+    height: 80px;
+    background: #c62828;
+    transform-origin: bottom center;
+    transition: transform 0.35s ease;
+    border-radius: 999px;
+}
+
+.servo-gauge__hub {
+    position: absolute;
+    left: 50%;
+    top: 156px;
+    width: 16px;
+    height: 16px;
+    background: #f3f3f3;
+    border: 4px solid #111111;
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+}
+
+.servo-panel__controls {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.servo-panel__left-values {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.servo-panel__field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.servo-panel__field-label {
+    font-size: 18px;
+    font-weight: 800;
+    color: #111111;
+}
+
+.servo-panel__field-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.servo-panel__right-values {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 22px;
+    min-width: 250px;
+}
+
+.config-value-box {
+    min-width: 120px;
+    min-height: 54px;
+    border: 4px solid #111111;
+    background: #f3f3f3;
+    color: #111111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 14px;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.config-value-box--angle {
+    min-width: 130px;
+}
+
+.config-small-button,
+.config-dir-button {
+    min-width: 54px;
+    min-height: 54px;
+    border: 4px solid #111111;
+    background: #f3f3f3;
+    color: #111111;
+    font-weight: 800;
+    cursor: pointer;
+    font-size: 24px;
+}
+
+.config-dir-button--wide {
+    min-width: 240px;
+    padding: 0 16px;
+    font-size: 20px;
+}
+
+.config-small-button:disabled,
+.config-dir-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.config-right-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .config-footer {
@@ -65,38 +369,115 @@
     align-items: center;
 }
 
-.config-confirm-button {
-    min-width: 160px;
-    min-height: 68px;
-    border: 4px solid #111111;
-    background: #f3f3f3;
-    color: #111111;
-    padding: 12px 20px;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-.config-confirm-button:hover {
-    background: #e7e7e7;
-}
-
 @media (max-width: 1199px) {
-    .config-grid {
-        grid-template-columns: repeat(3, minmax(120px, 1fr));
+    .config-main-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .servo-panel__gauge-row {
+        grid-template-columns: 1fr;
+    }
+
+    .servo-panel__side {
+        order: 2;
+    }
+
+    .servo-gauge {
+        order: 1;
+    }
+
+    .servo-panel__controls {
+        flex-direction: column;
+    }
+
+    .servo-panel__right-values {
+        align-items: flex-start;
     }
 }
 
 @media (max-width: 767px) {
-    .config-grid {
+    .config-tab {
+        padding: 14px;
+    }
+
+    .config-topbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .config-servo-picker {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .config-servo-picker__label {
+        font-size: 18px;
+    }
+
+    .config-test-card__buttons {
         grid-template-columns: 1fr;
+    }
+
+    .servo-gauge {
+        width: 290px;
+        height: 230px;
+    }
+
+    .servo-gauge__left-arc,
+    .servo-gauge__right-arc {
+        width: 84px;
+        height: 162px;
+    }
+
+    .servo-gauge__left-arc {
+        left: 28px;
+    }
+
+    .servo-gauge__right-arc {
+        right: 28px;
+    }
+
+    .servo-gauge__tick--0 {
+        left: 46px;
+    }
+
+    .servo-gauge__tick--45 {
+        left: 86px;
+    }
+
+    .servo-gauge__tick--90 {
+        left: 143px;
+    }
+
+    .servo-gauge__tick--135 {
+        right: 86px;
+    }
+
+    .servo-gauge__tick--180 {
+        right: 46px;
+    }
+
+    .servo-gauge__body {
+        width: 90px;
+        height: 116px;
+        top: 100px;
+    }
+
+    .servo-gauge__label {
+        font-size: 22px;
+        margin-top: 20px;
+    }
+
+    .servo-gauge__needle {
+        top: 88px;
+        height: 74px;
+    }
+
+    .servo-gauge__hub {
+        top: 148px;
     }
 
     .config-footer {
         flex-direction: column;
-        justify-content: stretch;
-    }
-
-    .config-confirm-button {
-        width: 100%;
     }
 }

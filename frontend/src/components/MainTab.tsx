@@ -2,9 +2,6 @@ import { LeftMainControls } from "./LeftMainControls";
 import { ValueCard } from "./ValueCard";
 import { useRobotState } from "../hooks/useRobotState";
 
-const fallbackCard3 = [3.42, 3.79, 4.16, 4.53, 4.9, 5.27];
-const fallbackCard4 = [4.18, 4.55, 4.92, 5.29, 5.66, 6.03];
-
 type MainTabProps = {
     robot: ReturnType<typeof useRobotState>;
 };
@@ -13,6 +10,8 @@ export function MainTab({ robot }: MainTabProps) {
     const {
         displayedJoints,
         cartesian,
+        positionNumber,
+        targetJoints,
         connected,
         isStopPressed,
         mode,
@@ -42,6 +41,11 @@ export function MainTab({ robot }: MainTabProps) {
         handleCartesianButtonRelease,
         handleJointButtonPress,
         handleJointButtonRelease,
+        gripperClosed,
+        handleHome,
+        handleToggleGripper,
+        toolCords,
+        handleToggleToolCords,
     } = robot;
 
     const controlsDisabled = !connected || busy || isStopPressed;
@@ -54,6 +58,7 @@ export function MainTab({ robot }: MainTabProps) {
                 availableComPorts={availableComPorts}
                 selectedCom={selectedCom}
                 baudRate={baudRate}
+                positionNumber={positionNumber}
                 mode={mode}
                 motionType={motionType}
                 speed={speed}
@@ -74,6 +79,9 @@ export function MainTab({ robot }: MainTabProps) {
                 onPrevPosition={handlePrevPosition}
                 onPause={handlePause}
                 onNextPosition={handleNextPosition}
+                gripperClosed={gripperClosed}
+                onHome={handleHome}
+                onToggleGripper={handleToggleGripper}
             />
 
             <div className="cards-grid">
@@ -99,8 +107,17 @@ export function MainTab({ robot }: MainTabProps) {
                     onDecrementRelease={(index) => handleCartesianButtonRelease(index, "-")}
                 />
 
-                <ValueCard title="Ramka 3" values={fallbackCard3} />
-                <ValueCard title="Ramka 4" values={fallbackCard4} />
+                <ValueCard title="Target Joint Values" values={targetJoints} />
+                <div className="cords-card">
+                    <button
+                        className="cords-button"
+                        type="button"
+                        onClick={handleToggleToolCords}
+                        disabled={controlsDisabled}
+                    >
+                        Cords: World/Tool ({toolCords ? "Tool" : "World"})
+                    </button>
+                </div>
             </div>
 
             <div className="status-bar">

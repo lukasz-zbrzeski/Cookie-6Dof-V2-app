@@ -21,6 +21,10 @@ export async function getRobotState() {
         baud_rate: number | null;
         joints: number[];
         cartesian: number[];
+        position_number: number | null;
+        target_joints: number[];
+        gripper_closed: boolean;
+        tool_cords: boolean;
     }>(response);
 }
 
@@ -105,49 +109,28 @@ export async function getJoints() {
     return handleResponse<{ values: number[] }>(response);
 }
 
-export async function incrementJoint(index: number) {
-    const response = await fetch(`${API_BASE_URL}/robot/joints/${index}/increment`, {
-        method: "PATCH",
-    });
-
-    return handleResponse<{ values: number[] }>(response);
-}
-
-export async function decrementJoint(index: number) {
-    const response = await fetch(`${API_BASE_URL}/robot/joints/${index}/decrement`, {
-        method: "PATCH",
-    });
-
-    return handleResponse<{ values: number[] }>(response);
-}
-
 export async function getCartesian() {
     const response = await fetch(`${API_BASE_URL}/robot/cartesian`);
     return handleResponse<{ values: number[] }>(response);
 }
 
-export async function incrementCartesian(index: number) {
-    const response = await fetch(`${API_BASE_URL}/robot/cartesian/${index}/increment`, {
-        method: "PATCH",
-    });
-
-    return handleResponse<{ values: number[] }>(response);
-}
-
-export async function decrementCartesian(index: number) {
-    const response = await fetch(`${API_BASE_URL}/robot/cartesian/${index}/decrement`, {
-        method: "PATCH",
-    });
-
-    return handleResponse<{ values: number[] }>(response);
-}
-
-export async function recordPosition() {
+export async function recordPosition(values: number[]) {
     const response = await fetch(`${API_BASE_URL}/robot/record`, {
         method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            values,
+        }),
     });
 
-    return handleResponse(response);
+    return handleResponse<{
+        record_id: number;
+        position_number: number;
+        target_joints: number[];
+        values: number[];
+    }>(response);
 }
 
 export async function resumeMotion() {
@@ -171,7 +154,10 @@ export async function prevPosition() {
         method: "POST",
     });
 
-    return handleResponse(response);
+    return handleResponse<{
+        position_number: number | null;
+        target_joints: number[];
+    }>(response);
 }
 
 export async function pauseMotion() {
@@ -187,7 +173,10 @@ export async function nextPosition() {
         method: "POST",
     });
 
-    return handleResponse(response);
+    return handleResponse<{
+        position_number: number | null;
+        target_joints: number[];
+    }>(response);
 }
 
 export async function pressManualMove(
@@ -279,5 +268,61 @@ export async function releaseManualCartesianMove(
         move_cartesian: string[];
         error: boolean;
         error_message: string;
+    }>(response);
+}
+
+export async function getRecordedPositions() {
+    const response = await fetch(`${API_BASE_URL}/robot/recorded-positions`);
+
+    return handleResponse<{
+        positions: {
+            id: number;
+            joints: number[];
+        }[];
+    }>(response);
+}
+
+export async function homeRobot() {
+    const response = await fetch(`${API_BASE_URL}/robot/home`, {
+        method: "POST",
+    });
+
+    return handleResponse<{
+        joints: number[];
+        cartesian: number[];
+    }>(response);
+}
+
+export async function setGripper(gripperClosed: boolean) {
+    const response = await fetch(`${API_BASE_URL}/robot/gripper`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            gripper_closed: gripperClosed,
+        }),
+    });
+
+    return handleResponse<{
+        gripper_closed: boolean;
+        position_number: number;
+        target_joints: number[];
+    }>(response);
+}
+
+export async function setToolCords(toolCords: boolean) {
+    const response = await fetch(`${API_BASE_URL}/robot/tool-cords`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            tool_cords: toolCords,
+        }),
+    });
+
+    return handleResponse<{
+        tool_cords: boolean;
     }>(response);
 }

@@ -39,27 +39,7 @@ Accept: application/json
 
 ###
 
-PATCH http://127.0.0.1:8000/robot/joints/0/increment
-Accept: application/json
-
-###
-
-PATCH http://127.0.0.1:8000/robot/joints/0/decrement
-Accept: application/json
-
-###
-
 GET http://127.0.0.1:8000/robot/cartesian
-Accept: application/json
-
-###
-
-PATCH http://127.0.0.1:8000/robot/cartesian/1/increment
-Accept: application/json
-
-###
-
-PATCH http://127.0.0.1:8000/robot/cartesian/1/decrement
 Accept: application/json
 
 ###

@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import {
     connectRobot,
-    decrementCartesian,
-    decrementJoint,
     disconnectRobot,
     getCartesian,
     getJoints,
     getRobotState,
-    incrementCartesian,
-    incrementJoint,
     nextPosition,
     pauseMotion,
     playMotion,
@@ -23,6 +19,9 @@ import {
     releaseManualMove,
     pressManualCartesianMove,
     releaseManualCartesianMove,
+    homeRobot,
+    setGripper,
+    setToolCords,
 } from "../api/robotApi";
 
 export type RobotMode = "manual" | "auto";
@@ -107,6 +106,8 @@ export function useRobotState() {
     const [joints, setJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
     const [displayedJoints, setDisplayedJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
     const [cartesian, setCartesian] = useState<number[]>([0, 0, 0, 0, 0, 0]);
+    const [positionNumber, setPositionNumber] = useState<number | null>(null);
+    const [targetJoints, setTargetJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
     const [connected, setConnected] = useState(false);
     const [isStopPressed, setIsStopPressed] = useState(false);
     const [mode, setMode] = useState<RobotMode>("manual");
@@ -120,6 +121,8 @@ export function useRobotState() {
     const [configRows, setConfigRows] = useState<ServoConfigRow[]>(() =>
         loadConfigRowsFromStorage()
     );
+    const [gripperClosed, setGripperClosed] = useState(false);
+    const [toolCords, setToolCordsState] = useState(true);
 
     const loadComPorts = useCallback(async () => {
         try {
@@ -152,6 +155,10 @@ export function useRobotState() {
 
             setJoints(state.joints);
             setCartesian(state.cartesian);
+            setGripperClosed(state.gripper_closed);
+            setToolCordsState(state.tool_cords);
+            setPositionNumber(state.position_number);
+            setTargetJoints((prev) => state.target_joints ?? prev);
             setConnected(state.connected);
             setIsStopPressed(state.stopped);
             setMode(state.mode);
@@ -226,6 +233,8 @@ export function useRobotState() {
                 setConfigRows(createDefaultConfigRows());
                 clearConfigRowsFromStorage();
                 setDisplayedJoints([0, 0, 0, 0, 0, 0]);
+                setPositionNumber(null);
+                setTargetJoints([0, 0, 0, 0, 0, 0]);
                 await loadState();
                 await loadComPorts();
                 return;
@@ -267,32 +276,6 @@ export function useRobotState() {
                     ? {
                         ...row,
                         [field]: field === "offset" ? Math.trunc(value) : value,
-                    }
-                    : row
-            )
-        );
-    };
-
-    const handleConfigPwmIncrement = (rowIndex: number) => {
-        setConfigRows((prev) =>
-            prev.map((row, index) =>
-                index === rowIndex
-                    ? {
-                        ...row,
-                        pwm: row.pwm + 1,
-                    }
-                    : row
-            )
-        );
-    };
-
-    const handleConfigPwmDecrement = (rowIndex: number) => {
-        setConfigRows((prev) =>
-            prev.map((row, index) =>
-                index === rowIndex
-                    ? {
-                        ...row,
-                        pwm: Math.max(row.pwm - 1, 0),
                     }
                     : row
             )
@@ -345,59 +328,12 @@ export function useRobotState() {
         });
     };
 
-    const handleIncrementJoint = async (index: number) => {
-        await withBusy(async () => {
-            const response = await incrementJoint(index);
-            setJoints(response.values);
-
-            setConfigRows((prev) =>
-                prev.map((row, rowIndex) =>
-                    rowIndex === index
-                        ? {
-                            ...row,
-                            angle: Number((row.angle + 0.1).toFixed(2)),
-                        }
-                        : row
-                )
-            );
-        });
-    };
-
-    const handleDecrementJoint = async (index: number) => {
-        await withBusy(async () => {
-            const response = await decrementJoint(index);
-            setJoints(response.values);
-
-            setConfigRows((prev) =>
-                prev.map((row, rowIndex) =>
-                    rowIndex === index
-                        ? {
-                            ...row,
-                            angle: Number((row.angle - 0.1).toFixed(2)),
-                        }
-                        : row
-                )
-            );
-        });
-    };
-
-    const handleIncrementCartesian = async (index: number) => {
-        await withBusy(async () => {
-            const response = await incrementCartesian(index);
-            setCartesian(response.values);
-        });
-    };
-
-    const handleDecrementCartesian = async (index: number) => {
-        await withBusy(async () => {
-            const response = await decrementCartesian(index);
-            setCartesian(response.values);
-        });
-    };
-
     const handleRecord = async () => {
         await withBusy(async () => {
-            await recordPosition();
+            const response = await recordPosition(displayedJoints);
+
+            setPositionNumber(response.position_number);
+            setTargetJoints(response.target_joints);
         });
     };
 
@@ -415,7 +351,10 @@ export function useRobotState() {
 
     const handlePrevPosition = async () => {
         await withBusy(async () => {
-            await prevPosition();
+            const response = await prevPosition();
+
+            setPositionNumber(response.position_number);
+            setTargetJoints(response.target_joints);
         });
     };
 
@@ -427,7 +366,10 @@ export function useRobotState() {
 
     const handleNextPosition = async () => {
         await withBusy(async () => {
-            await nextPosition();
+            const response = await nextPosition();
+
+            setPositionNumber(response.position_number);
+            setTargetJoints(response.target_joints);
         });
     };
 
@@ -477,10 +419,37 @@ export function useRobotState() {
         });
     };
 
+    const handleHome = async () => {
+        await withBusy(async () => {
+            const response = await homeRobot();
+
+            setJoints(response.joints);
+            setDisplayedJoints(response.joints);
+            setCartesian(response.cartesian);
+        });
+    };
+
+    const handleToggleGripper = async () => {
+        await withBusy(async () => {
+            const response = await setGripper(!gripperClosed);
+
+            setGripperClosed(response.gripper_closed);
+        });
+    };
+
+    const handleToggleToolCords = async () => {
+        await withBusy(async () => {
+            const response = await setToolCords(!toolCords);
+            setToolCordsState(response.tool_cords);
+        });
+    };
+
     return {
         joints,
         displayedJoints,
         cartesian,
+        positionNumber,
+        targetJoints,
         connected,
         isStopPressed,
         mode,
@@ -503,10 +472,6 @@ export function useRobotState() {
         handleToggleMotionType,
         handleIncreaseSpeed,
         handleDecreaseSpeed,
-        handleIncrementJoint,
-        handleDecrementJoint,
-        handleIncrementCartesian,
-        handleDecrementCartesian,
         handleRecord,
         handleResume,
         handlePlay,
@@ -514,11 +479,14 @@ export function useRobotState() {
         handlePause,
         handleNextPosition,
         updateConfigRowField,
-        handleConfigPwmIncrement,
-        handleConfigPwmDecrement,
         handleJointButtonPress,
         handleJointButtonRelease,
         handleCartesianButtonPress,
         handleCartesianButtonRelease,
+        gripperClosed,
+        handleHome,
+        handleToggleGripper,
+        toolCords,
+        handleToggleToolCords,
     };
 }

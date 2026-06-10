@@ -31,7 +31,7 @@ export function ValueCard({
 
             <div className="value-card__content">
                 <div className="value-card__values">
-                    {values.map((value, index) => (
+                    {(values ?? []).map((value, index) => (
                         <ValueField
                             key={`${title}-${index}`}
                             value={value}

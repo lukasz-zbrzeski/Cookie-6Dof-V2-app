@@ -711,7 +711,20 @@ async def home_robot():
 
 @app.post("/robot/gripper")
 async def set_gripper(data: GripperRequest):
+    # 1. Aktualizujemy stan w aplikacji
     robot_state["gripper_closed"] = data.gripper_closed
+
+    # 2. Generujemy odpowiednią komendę tekstową
+    if data.gripper_closed:
+        command = "GRIPPER_CLOSE;\n"  # Lub "GRIPPER[1];\n", zależy co wolisz na STM32
+    else:
+        command = "GRIPPER_OPEN;\n"  # Lub "GRIPPER[0];\n"
+
+    # 3. Wrzucamy do kolejki. _uart_worker sam to bezpiecznie wyśle w tle!
+    uart.queue_command(command)
+
+    # 4. (Opcjonalnie) Logujemy w konsoli dla wygody
+    print_message("gripper", {"command_sent": command.strip()})
 
     return {
         "message": "Stan chwytaka zmieniony.",
